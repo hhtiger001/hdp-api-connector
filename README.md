@@ -47,7 +47,7 @@ HDP API connector registry 的 Java MVP。
 
 ```bash
 ./gradlew test
-./gradlew :converter:run --args="--input converter/src/test/resources/fixtures/airbyte/simple_manifest.yaml --output connectors/demo-users"
+./gradlew :validator-debugger:run --args="list-components --connector connectors/demo-users/connector.yaml"
 ./gradlew :validator-debugger:run --args="validate --connector connectors/demo-users/connector.yaml --config validator-debugger/src/test/resources/fixtures/config/valid-config.json"
 ./gradlew :validator-debugger:run --args="preview-request --connector connectors/demo-users/connector.yaml --stream users --config validator-debugger/src/test/resources/fixtures/config/preview-config.json"
 ```
@@ -103,7 +103,6 @@ HDP API connector registry 的 Java MVP。
 - 作者流程入口：[docs/authoring-connectors.md](docs/authoring-connectors.md)
 - 项目架构和维护边界：[docs/architecture.md](docs/architecture.md)
 - `connector.yaml` 逐字段说明：[docs/format/connector-schema.md](docs/format/connector-schema.md)
-- 设计 spec 中文版：[docs/superpowers/specs/2026-04-22-airbyte-compatible-connector-registry-design.zh-CN.md](docs/superpowers/specs/2026-04-22-airbyte-compatible-connector-registry-design.zh-CN.md)
 - 当前 MVP 实现计划：[docs/superpowers/plans/2026-04-22-hdp-connector-registry-mvp.md](docs/superpowers/plans/2026-04-22-hdp-connector-registry-mvp.md)
 
 ## 当前状态
