@@ -3,6 +3,7 @@ package com.hdp.connectorregistry.converter;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.hdp.connectorregistry.io.ConnectorLoader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -79,7 +80,7 @@ class AirbyteManifestConverterTest {
     void keepsComplexBudgetInReportWithoutInventingQps() throws Exception {
         ConversionResult result = converter.convert(fixture("complex_budget_manifest.yaml"));
 
-        assertThat(result.report().status()).isEqualTo(ConversionStatus.READY);
+        assertThat(result.report().status()).isEqualTo(ConversionStatus.DRAFT);
         assertThat(result.connector().spec().defaults().qps()).isNull();
         assertThat(result.connector().spec().streams()).singleElement().satisfies(stream ->
                 assertThat(stream.qps()).isNull());
@@ -90,6 +91,44 @@ class AirbyteManifestConverterTest {
                     assertThat(issue.originalValue()).contains("BurstBudget");
                 });
         assertThat(result.report().originalApiBudget().path("policies")).hasSize(2);
+    }
+
+    @Test
+    void downgradesMissingSchemaAndAvoidsDanglingSchemaRef() throws Exception {
+        ConversionResult result = converter.convert(fixture("missing_schema_manifest.yaml"));
+
+        assertThat(result.report().status()).isEqualTo(ConversionStatus.DRAFT);
+        assertThat(result.report().issues())
+                .anySatisfy(issue -> assertThat(issue.code()).isEqualTo("STREAM_SCHEMA_MISSING"));
+        assertThat(result.connector().spec().streams()).singleElement().satisfies(stream -> {
+            assertThat(stream.schema()).isNull();
+            assertThat(stream.request().requesterRef()).isEqualTo("users_requester");
+        });
+        assertThat(result.schemasByPath()).isEmpty();
+
+        new OutputWriter().write(result, tempDir);
+
+        String connectorYaml = Files.readString(tempDir.resolve("connector.yaml"));
+        assertThat(connectorYaml).doesNotContain("schemas/users.json");
+        assertThat(new ConnectorLoader().load(tempDir.resolve("connector.yaml")).schemasByRef()).isEmpty();
+    }
+
+    @Test
+    void createsDedicatedRequesterDefinitionForInlineRequester() throws Exception {
+        ConversionResult result = converter.convert(fixture("inline_requester_manifest.yaml"));
+
+        assertThat(result.report().status()).isEqualTo(ConversionStatus.READY);
+        assertThat(result.connector().spec().definitions().requesters())
+                .containsKeys("base_requester", "orders_requester");
+        assertThat(result.connector().spec().definitions().requesters().get("base_requester").path("urlBase").asText())
+                .isEqualTo("https://api.example.com");
+        assertThat(result.connector().spec().definitions().requesters().get("orders_requester").path("urlBase").asText())
+                .isEqualTo("https://orders.example.com");
+        assertThat(result.connector().spec().streams()).singleElement().satisfies(stream -> {
+            assertThat(stream.name()).isEqualTo("orders");
+            assertThat(stream.request().requesterRef()).isEqualTo("orders_requester");
+            assertThat(stream.request().path()).isEqualTo("/v2/orders");
+        });
     }
 
     @Test

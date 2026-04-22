@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.JavaExec
+
 plugins {
     application
 }
@@ -14,4 +16,8 @@ dependencies {
 
 application {
     mainClass.set("com.hdp.connectorregistry.converter.cli.ConvertCommand")
+}
+
+tasks.named<JavaExec>("run") {
+    workingDir = rootProject.projectDir
 }

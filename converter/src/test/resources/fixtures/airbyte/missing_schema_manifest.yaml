@@ -1,0 +1,17 @@
+version: "0.4.0"
+spec:
+  connection_specification:
+    type: object
+definitions:
+  base_requester:
+    type: HttpRequester
+    urlBase: "https://api.example.com"
+streams:
+  - type: DeclarativeStream
+    name: users
+    retriever:
+      type: SimpleRetriever
+      requester:
+        type: HttpRequester
+        urlBase: "https://users.example.com"
+        path: /users
