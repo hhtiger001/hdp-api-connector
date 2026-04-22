@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.JavaExec
+
 plugins {
     application
 }
@@ -13,4 +15,8 @@ dependencies {
 
 application {
     mainClass.set("com.hdp.connectorregistry.validator.cli.Main")
+}
+
+tasks.named<JavaExec>("run") {
+    workingDir = rootProject.projectDir
 }
