@@ -1,0 +1,23 @@
+version: "0.2.0"
+spec:
+  connection_specification:
+    type: object
+definitions:
+  custom_requester:
+    type: CustomRequester
+    class_name: source_demo.components.CustomRequester
+streams:
+  - type: DeclarativeStream
+    name: users
+    retriever:
+      type: CustomRetriever
+      class_name: source_demo.components.CustomRetriever
+      requester:
+        $ref: "#/definitions/custom_requester"
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        properties:
+          id:
+            type: string

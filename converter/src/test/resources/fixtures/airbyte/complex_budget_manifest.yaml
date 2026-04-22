@@ -1,0 +1,33 @@
+version: "0.3.0"
+spec:
+  connection_specification:
+    type: object
+definitions:
+  base_requester:
+    type: HttpRequester
+    urlBase: "{{ config['base_url'] }}"
+streams:
+  - type: DeclarativeStream
+    name: users
+    retriever:
+      type: SimpleRetriever
+      requester:
+        $ref: "#/definitions/base_requester"
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        properties:
+          id:
+            type: string
+api_budget:
+  policies:
+    - type: HTTPAPIBudget
+      rates:
+        - limit: 120
+          interval: minute
+        - limit: 10
+          interval: second
+    - type: BurstBudget
+      limit: 1000
+      reset_interval: day

@@ -1,0 +1,14 @@
+{
+  "status" : "READY",
+  "issues" : [ ],
+  "originVersion" : "0.1.0",
+  "originalApiBudget" : {
+    "policies" : [ {
+      "type" : "HTTPAPIBudget",
+      "rates" : [ {
+        "limit" : 120,
+        "interval" : "minute"
+      } ]
+    } ]
+  }
+}
