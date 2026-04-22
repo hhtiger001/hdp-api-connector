@@ -1,0 +1,20 @@
+apiVersion: hdp.connector/v1alpha1
+kind: ApiConnector
+metadata:
+  name: broken-connector
+  displayName: Broken Connector
+  source:
+    type: airbyte-manifest
+    originVersion: "0.1.0"
+spec:
+  connectionSpec:
+    type: object
+    properties:
+      base_url:
+        type: string
+  defaults:
+    qps: 2
+    baseUrl: "{{ config.base_url }}"
+  definitions:
+    requesters: {}
+    authenticators: {}

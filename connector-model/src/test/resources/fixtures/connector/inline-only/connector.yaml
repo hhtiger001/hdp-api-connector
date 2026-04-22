@@ -1,0 +1,36 @@
+apiVersion: hdp.connector/v1alpha1
+kind: ApiConnector
+metadata:
+  name: inline-only
+  displayName: Inline Only
+  source:
+    type: airbyte-manifest
+    originVersion: "0.1.0"
+spec:
+  connectionSpec:
+    type: object
+    required:
+      - base_url
+    properties:
+      base_url:
+        type: string
+  defaults:
+    qps: 1
+    baseUrl: "{{ config.base_url }}"
+  definitions:
+    requesters: {}
+    authenticators: {}
+  streams:
+    - name: users
+      request:
+        requesterRef: base_requester
+        path: /users
+        method: GET
+      schema:
+        inline:
+          type: object
+          properties:
+            id:
+              type: string
+          required:
+            - id
