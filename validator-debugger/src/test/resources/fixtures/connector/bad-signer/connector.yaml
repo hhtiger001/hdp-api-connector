@@ -1,0 +1,43 @@
+apiVersion: hdp.connector/v1alpha1
+kind: ApiConnector
+metadata:
+  name: demo-users
+  displayName: Demo Users
+  source:
+    type: airbyte-manifest
+    originVersion: "0.1.0"
+spec:
+  connectionSpec:
+    type: object
+    required:
+      - base_url
+      - api_key
+    properties:
+      base_url:
+        type: string
+      api_key:
+        type: string
+  defaults:
+    qps: 2
+    baseUrl: "{{ config.base_url }}"
+  definitions:
+    requesters:
+      base_requester:
+        urlBase: "{{ config.base_url }}"
+    authenticators: {}
+  signers:
+    broken_signer:
+      type: java
+      className: com.hdp.connectorregistry.validator.support.DoesNotExistSigner
+      config:
+        headerName: X-Signature
+  streams:
+    - name: users
+      qps: 2
+      request:
+        requesterRef: base_requester
+        path: /users
+        method: GET
+        signerRef: broken_signer
+      schema:
+        ref: schemas/users.json
