@@ -13,6 +13,7 @@ import com.hdp.connectorregistry.signer.SignerResult;
 import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +75,7 @@ public final class RequestPlanner {
         sections.add(formatSection("streams", loadedConnector.connector().spec().streams().stream()
                 .map(StreamDefinition::name)
                 .toList()));
-        sections.add(formatSection("schemas", new ArrayList<>(loadedConnector.schemasByRef().keySet())));
+        sections.add(formatSection("schemas", schemaIdentifiers(loadedConnector)));
 
         var signers = loadedConnector.connector().spec().signers() == null
                 ? List.<String>of()
@@ -125,7 +126,10 @@ public final class RequestPlanner {
     }
 
     private Integer resolveEffectiveQps(LoadedConnector loadedConnector, StreamDefinition stream, JsonNode config) {
-        String qps = stream.qps();
+        String qps = stream.request() == null ? null : stream.request().qps();
+        if (qps == null || qps.isBlank()) {
+            qps = stream.qps();
+        }
         if (qps == null || qps.isBlank()) {
             qps = loadedConnector.connector().spec().defaults() == null
                     ? null
@@ -171,6 +175,23 @@ public final class RequestPlanner {
             return path;
         }
         return URI.create(baseUrl).resolve(path).toString();
+    }
+
+    private List<String> schemaIdentifiers(LoadedConnector loadedConnector) {
+        var identifiers = new LinkedHashSet<String>();
+        for (StreamDefinition stream : loadedConnector.connector().spec().streams()) {
+            if (stream.schema() == null) {
+                continue;
+            }
+            if (stream.schema().ref() != null && !stream.schema().ref().isBlank()) {
+                identifiers.add(stream.schema().ref());
+                continue;
+            }
+            if (stream.schema().inline() != null && !stream.schema().inline().isNull()) {
+                identifiers.add("inline:" + stream.name());
+            }
+        }
+        return new ArrayList<>(identifiers);
     }
 
     private String formatSection(String title, List<String> values) {

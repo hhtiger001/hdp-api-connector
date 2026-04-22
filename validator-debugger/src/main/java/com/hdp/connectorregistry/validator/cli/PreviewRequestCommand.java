@@ -1,7 +1,7 @@
 package com.hdp.connectorregistry.validator.cli;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hdp.connectorregistry.io.ConnectorLoader;
+import com.hdp.connectorregistry.validator.RawConnectorLoader;
 import com.hdp.connectorregistry.validator.RequestPlanner;
 import com.hdp.connectorregistry.validator.RequestPreview;
 import java.nio.file.Path;
@@ -30,7 +30,7 @@ public final class PreviewRequestCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        var loadedConnector = new ConnectorLoader().load(connectorPath);
+        var loadedConnector = new RawConnectorLoader().load(connectorPath);
         var config = OBJECT_MAPPER.readTree(configPath.toFile());
         RequestPreview preview = new RequestPlanner().preview(loadedConnector, streamName, config);
         printPreview(preview);

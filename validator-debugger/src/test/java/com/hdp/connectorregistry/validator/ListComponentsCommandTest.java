@@ -29,6 +29,36 @@ class ListComponentsCommandTest {
                 .contains("fixed_header");
     }
 
+    @Test
+    void listsReferencedSchemasEvenWhenSchemaFileIsMissing() throws Exception {
+        var connectorPath = resourcePath("fixtures/connector/missing-schema/connector.yaml");
+        var output = new ByteArrayOutputStream();
+        var commandLine = new CommandLine(new ListComponentsCommand());
+        commandLine.setOut(new PrintWriter(output, true, StandardCharsets.UTF_8));
+
+        int exitCode = commandLine.execute("--connector", connectorPath.toString());
+
+        assertThat(exitCode).isZero();
+        assertThat(output.toString(StandardCharsets.UTF_8))
+                .contains("users")
+                .contains("schemas/missing-users.json");
+    }
+
+    @Test
+    void listsInlineSchemasUsingStableMarker() throws Exception {
+        var connectorPath = resourcePath("fixtures/connector/inline-schema/connector.yaml");
+        var output = new ByteArrayOutputStream();
+        var commandLine = new CommandLine(new ListComponentsCommand());
+        commandLine.setOut(new PrintWriter(output, true, StandardCharsets.UTF_8));
+
+        int exitCode = commandLine.execute("--connector", connectorPath.toString());
+
+        assertThat(exitCode).isZero();
+        assertThat(output.toString(StandardCharsets.UTF_8))
+                .contains("events")
+                .contains("inline:events");
+    }
+
     private static Path resourcePath(String resourceName) throws URISyntaxException {
         var resource = ListComponentsCommandTest.class.getClassLoader().getResource(resourceName);
         return Path.of(Objects.requireNonNull(resource, resourceName).toURI());

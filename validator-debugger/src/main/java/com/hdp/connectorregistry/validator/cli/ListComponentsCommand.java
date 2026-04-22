@@ -1,6 +1,6 @@
 package com.hdp.connectorregistry.validator.cli;
 
-import com.hdp.connectorregistry.io.ConnectorLoader;
+import com.hdp.connectorregistry.validator.RawConnectorLoader;
 import com.hdp.connectorregistry.validator.RequestPlanner;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
@@ -19,7 +19,7 @@ public final class ListComponentsCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        var loadedConnector = new ConnectorLoader().load(connectorPath);
+        var loadedConnector = new RawConnectorLoader().load(connectorPath);
         spec.commandLine().getOut().print(new RequestPlanner().listComponents(loadedConnector));
         spec.commandLine().getOut().flush();
         return 0;
