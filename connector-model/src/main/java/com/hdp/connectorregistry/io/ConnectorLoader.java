@@ -14,12 +14,17 @@ public final class ConnectorLoader {
 
     public LoadedConnector load(Path connectorPath) {
         try {
-            ApiConnector connector = yamlMapper.readValue(Files.readString(connectorPath), ApiConnector.class);
-            validateStructure(connector, connectorPath);
-            Map<String, JsonNode> schemasByRef = schemaResolver.resolve(connectorPath, connector);
-            return new LoadedConnector(connector, schemasByRef);
+            String rawConnector = Files.readString(connectorPath);
+            try {
+                ApiConnector connector = yamlMapper.readValue(rawConnector, ApiConnector.class);
+                validateStructure(connector, connectorPath);
+                Map<String, JsonNode> schemasByRef = schemaResolver.resolve(connectorPath, connector);
+                return new LoadedConnector(connector, schemasByRef);
+            } catch (IOException exception) {
+                throw new ConnectorLoadException("Malformed connector YAML: " + connectorPath, exception);
+            }
         } catch (IOException exception) {
-            throw new ConnectorLoadException("Unable to load connector: " + connectorPath, exception);
+            throw new ConnectorLoadException("Unable to read connector: " + connectorPath, exception);
         }
     }
 
@@ -32,6 +37,12 @@ public final class ConnectorLoader {
         }
         if (connector.spec().streams() == null) {
             throw new ConnectorLoadException("Connector is missing required field: spec.streams (" + connectorPath + ")");
+        }
+        for (int index = 0; index < connector.spec().streams().size(); index++) {
+            if (connector.spec().streams().get(index) == null) {
+                throw new ConnectorLoadException(
+                        "Connector contains invalid stream entry at spec.streams[" + index + "] (" + connectorPath + ")");
+            }
         }
     }
 

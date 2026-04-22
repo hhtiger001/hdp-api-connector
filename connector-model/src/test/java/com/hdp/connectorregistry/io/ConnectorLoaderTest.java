@@ -43,6 +43,25 @@ class ConnectorLoaderTest {
     }
 
     @Test
+    void failsFastWhenAStreamEntryIsNull() {
+        Path connectorPath = Path.of("src/test/resources/fixtures/connector/malformed/null-stream-item.yaml");
+
+        assertThatThrownBy(() -> new ConnectorLoader().load(connectorPath))
+                .isInstanceOf(ConnectorLoadException.class)
+                .hasMessageContaining("spec.streams[0]");
+    }
+
+    @Test
+    void failsWhenStreamsHasAnIllegalStructure() {
+        Path connectorPath = Path.of("src/test/resources/fixtures/connector/malformed/streams-not-list.yaml");
+
+        assertThatThrownBy(() -> new ConnectorLoader().load(connectorPath))
+                .isInstanceOf(ConnectorLoadException.class)
+                .hasMessageContaining("Malformed connector YAML")
+                .hasMessageContaining("streams-not-list.yaml");
+    }
+
+    @Test
     void rejectsAbsoluteSchemaRefs() throws IOException {
         Path connectorDirectory = Files.createTempDirectory("connector-model-absolute-schema");
         Path connectorPath = connectorDirectory.resolve("connector.yaml");
