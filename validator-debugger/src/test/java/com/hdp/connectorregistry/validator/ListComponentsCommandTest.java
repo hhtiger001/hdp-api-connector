@@ -59,6 +59,22 @@ class ListComponentsCommandTest {
                 .contains("inline:events");
     }
 
+    @Test
+    void reportsConnectorLoadFailureWhenSpecIsMissing() throws Exception {
+        var connectorPath = resourcePath("fixtures/connector/malformed/missing-spec.yaml");
+        var output = new ByteArrayOutputStream();
+        var commandLine = new CommandLine(new ListComponentsCommand());
+        commandLine.setOut(new PrintWriter(output, true, StandardCharsets.UTF_8));
+
+        int exitCode = commandLine.execute("--connector", connectorPath.toString());
+
+        assertThat(exitCode).isEqualTo(1);
+        assertThat(output.toString(StandardCharsets.UTF_8))
+                .contains("ERROR CONNECTOR_LOAD_FAILED")
+                .contains("spec")
+                .doesNotContain("NullPointerException");
+    }
+
     private static Path resourcePath(String resourceName) throws URISyntaxException {
         var resource = ListComponentsCommandTest.class.getClassLoader().getResource(resourceName);
         return Path.of(Objects.requireNonNull(resource, resourceName).toURI());

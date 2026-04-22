@@ -52,6 +52,27 @@ class PreviewRequestCommandTest {
                 .contains("X-Signature=signed");
     }
 
+    @Test
+    void reportsConnectorLoadFailureWhenSpecIsMissing() throws Exception {
+        var commandLine = new CommandLine(new PreviewRequestCommand());
+        var output = new ByteArrayOutputStream();
+        commandLine.setOut(new PrintWriter(output, true, StandardCharsets.UTF_8));
+
+        int exitCode = commandLine.execute(
+                "--connector",
+                resourcePath("fixtures/connector/malformed/missing-spec.yaml").toString(),
+                "--stream",
+                "users",
+                "--config",
+                resourcePath("fixtures/config/preview-config.json").toString());
+
+        assertThat(exitCode).isEqualTo(1);
+        assertThat(output.toString(StandardCharsets.UTF_8))
+                .contains("ERROR CONNECTOR_LOAD_FAILED")
+                .contains("spec")
+                .doesNotContain("NullPointerException");
+    }
+
     private static Path resourcePath(String resourceName) throws URISyntaxException {
         var resource = PreviewRequestCommandTest.class.getClassLoader().getResource(resourceName);
         return Path.of(Objects.requireNonNull(resource, resourceName).toURI());

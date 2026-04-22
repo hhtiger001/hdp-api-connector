@@ -1,6 +1,7 @@
 package com.hdp.connectorregistry.validator.cli;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hdp.connectorregistry.io.ConnectorLoadException;
 import com.hdp.connectorregistry.validator.RawConnectorLoader;
 import com.hdp.connectorregistry.validator.RequestPlanner;
 import com.hdp.connectorregistry.validator.RequestPreview;
@@ -30,11 +31,17 @@ public final class PreviewRequestCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        var loadedConnector = new RawConnectorLoader().load(connectorPath);
-        var config = OBJECT_MAPPER.readTree(configPath.toFile());
-        RequestPreview preview = new RequestPlanner().preview(loadedConnector, streamName, config);
-        printPreview(preview);
-        return 0;
+        try {
+            var loadedConnector = new RawConnectorLoader().load(connectorPath);
+            var config = OBJECT_MAPPER.readTree(configPath.toFile());
+            RequestPreview preview = new RequestPlanner().preview(loadedConnector, streamName, config);
+            printPreview(preview);
+            return 0;
+        } catch (ConnectorLoadException exception) {
+            spec.commandLine().getOut().printf("ERROR CONNECTOR_LOAD_FAILED %s%n", exception.getMessage());
+            spec.commandLine().getOut().flush();
+            return 1;
+        }
     }
 
     private void printPreview(RequestPreview preview) {
