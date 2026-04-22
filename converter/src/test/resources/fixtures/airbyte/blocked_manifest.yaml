@@ -1,0 +1,9 @@
+version: "0.2.1"
+spec:
+  connection_specification:
+    type: object
+definitions:
+  base_requester:
+    type: HttpRequester
+    urlBase: "{{ config['base_url'] }}"
+streams: []
