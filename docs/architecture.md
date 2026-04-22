@@ -211,7 +211,7 @@ flowchart LR
 
 - `baseUrl`：先看 `definitions.requesters[requesterRef].urlBase`，再看 `spec.defaults.baseUrl`
 - `qps`：先看 `request.qps`，再看 `stream.qps`，再看 `spec.defaults.qps`
-- `method`：空时默认 `GET`
+- `method`：只有在 `RequestDefinition.method` 为 `null` 时才回退到 `GET`；`RequestPlanner.defaultString` 的语义是“值为 `null` 时用 fallback，空字符串会原样保留”
 - `path`：先做模板解析，再和 base URL 合成绝对 URL
 
 `TemplateResolver` 当前只解析 `{{ config.<path> }}` 这类表达式。
@@ -276,31 +276,26 @@ flowchart LR
 
 ### 1. 新增一个 `connector.yaml` 字段
 
-先改这里：
+先判断这个字段属于哪一层：
 
-- `connector-model/src/main/java/com/hdp/connectorregistry/model/ApiConnector.java`
-- `connector-model/src/main/java/com/hdp/connectorregistry/model/ConnectorSpec.java`
-- `connector-model/src/main/java/com/hdp/connectorregistry/model/Defaults.java`
-- `connector-model/src/main/java/com/hdp/connectorregistry/model/Definitions.java`
-- `connector-model/src/main/java/com/hdp/connectorregistry/model/StreamDefinition.java`
-- `connector-model/src/main/java/com/hdp/connectorregistry/model/RequestDefinition.java`
-- `connector-model/src/main/java/com/hdp/connectorregistry/model/SchemaDefinition.java`
-- `connector-model/src/main/java/com/hdp/connectorregistry/model/SignerDefinition.java`
-- `connector-model/src/main/java/com/hdp/connectorregistry/model/Metadata.java`
+- 如果它描述 connector 顶层元数据，优先看 `ApiConnector` / `Metadata`
+- 如果它描述整体能力或默认行为，优先看 `ConnectorSpec` / `Defaults` / `Definitions`
+- 如果它描述某个 stream，优先看 `StreamDefinition`
+- 如果它描述请求细节，优先看 `RequestDefinition`
+- 如果它描述 schema，优先看 `SchemaDefinition`
+- 如果它描述 signer，优先看 `SignerDefinition`
 
-然后看这个字段会不会影响：
+把字段放进正确的 record 之后，再判断后续影响面：
 
-- `ConnectorLoader`
-- `ConnectorValidator`
-- `RequestPlanner`
-- `RequestPreview`
-- `ListComponentsCommand`
+- 需要被读进来吗，通常会影响 `ConnectorLoader`
+- 需要参与静态检查吗，通常会影响 `ConnectorValidator`
+- 需要参与请求预览吗，通常会影响 `RequestPlanner` 或 `RequestPreview`
+- 需要出现在组件清单里吗，通常会影响 `RequestPlanner.listComponents`
 
-如果这是一个对外可见的 schema 字段，别忘了同步：
+字段说明文档也要跟上，但它不是唯一真相来源：
 
-- `docs/format/connector-schema.md`
-- 对应 fixture
-- 对应测试
+- `docs/format/connector-schema.md` 负责字段参考入口
+- 当前实现仍以模型层、加载层和校验/预览逻辑为准
 
 判断标准很简单：
 
@@ -371,24 +366,29 @@ flowchart LR
 
 ## 本地验证与回归检查
 
-本仓库最小的本地检查，按这个顺序来：
+本仓库最小的本地检查分两档：
+
+### 全量回归
 
 ```bash
 ./gradlew test
-./gradlew :connector-model:test
-./gradlew :validator-debugger:test
+```
+
+### 定向验证
+
+按改动类型挑命令跑：
+
+- 改了组件枚举、组件列表输出或加载边界，就跑 `list-components`
+- 改了校验逻辑、错误码或校验提示，就跑 `validate`
+- 改了请求规划、模板解析、签名合并或预览输出，就跑 `preview-request`
+
+例如：
+
+```bash
 ./gradlew :validator-debugger:run --args="list-components --connector connectors/demo-users/connector.yaml"
 ./gradlew :validator-debugger:run --args="validate --connector connectors/demo-users/connector.yaml --config validator-debugger/src/test/resources/fixtures/config/valid-config.json"
 ./gradlew :validator-debugger:run --args="preview-request --connector connectors/demo-users/connector.yaml --stream users --config validator-debugger/src/test/resources/fixtures/config/preview-config.json"
 ```
-
-怎么选命令：
-
-- 只改模型层，至少跑 `:connector-model:test`
-- 只改校验层或 CLI，至少跑 `:validator-debugger:test`
-- 改了请求规划或 signer，至少跑 `preview-request`
-- 改了校验逻辑，至少跑 `validate`
-- 改了组件枚举或输出，至少跑 `list-components`
 
 如果你在改字段模型，回归清单至少还要包含：
 
@@ -401,7 +401,7 @@ flowchart LR
 这三份文档不要互相打架：
 
 - `README.md`：项目入口、模块概览、快速开始
-- `docs/format/connector-schema.md`：`connector.yaml` 的字段字典
+- `docs/format/connector-schema.md`：`connector.yaml` 的字段参考
 - `docs/architecture.md`：维护者扩展视角，回答“该改哪里、怎么扩、怎么验”
 
 阅读顺序建议是：
@@ -410,4 +410,4 @@ flowchart LR
 2. 再看 `docs/architecture.md`，建立扩展路径心智模型
 3. 最后看 `docs/format/connector-schema.md`，查具体字段
 
-如果你正在改的是一个对外可见的结构字段，最终还是要回到字段字典；如果你正在改的是层次边界或扩展入口，这份架构文档才是主文档。
+如果你正在改的是一个对外可见的结构字段，最终还是要回到字段参考；如果你正在改的是层次边界或扩展入口，这份架构文档才是主文档。
