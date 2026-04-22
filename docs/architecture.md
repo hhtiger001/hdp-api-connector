@@ -242,7 +242,7 @@ flowchart LR
 
 当前约束：
 
-- 校验层只接受 `type: java`，或者 `type` 为空
+- `type` 缺省时可以省略；一旦显式填写，必须是 `java`
 - 如果 `className` 不存在、不能构造、或者不是 `RequestSigner`，`validate` 会报错
 - signer 只负责签名，不负责请求规划和 HTTP 执行
 
