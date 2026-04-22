@@ -2,15 +2,17 @@
 
 HDP API connector registry 的 Java MVP。
 
-这个仓库的目标不是执行数据同步，而是把“API source 的定义资产”沉淀成一个可复用、可开源、可本地调试的 connectors 仓库。
+这个仓库面向 `HDP API connector` 的定义、校验与本地调试。
+
+目标不是执行数据同步，而是把 connector 定义资产沉淀成一个可复用、可开源、可本地验证的仓库。
 
 ## 项目定位
 
 这个仓库当前负责三件事：
 
 - 定义 HDP 自己的 `connector.yaml` 结构
-- 把一部分 Airbyte declarative `manifest.yaml` 转成 HDP connector
 - 提供本地静态调试工具，验证 connector 和预览最终请求
+- 提供示例 connector、schema 和生成工具，帮助贡献者快速起步
 
 这个仓库当前不负责：
 
@@ -21,22 +23,11 @@ HDP API connector registry 的 Java MVP。
 
 换句话说，这里是 connector-definition registry，不是 runtime。
 
-## 和 Airbyte 的关系
-
-这个项目的一个核心目标，是尽量复用 Airbyte declarative API source 的资产，而不是从零重写一套 connector DSL。
-
-当前策略是：
-
-- 复用 Airbyte manifest 里可以稳定映射的结构
-- 保留 `connection_specification`、`definitions`、`streams` 这类 declarative 形状
-- 对复杂 `api_budget`、custom component 等超出当前 MVP 能力的部分，降级为 `DRAFT` 或 `BLOCKED`
-- 对非标准签名需求，引入 HDP 自己的 Java `signer` 扩展点
-
 ## 仓库结构
 
 - `connectors/`: 已发布或示例化的 connector 定义
 - `connector-model/`: HDP connector 数据模型、YAML 读写、schema 解析、signer SPI
-- `converter/`: Airbyte `manifest.yaml` -> HDP connector 转换器
+- `converter/`: 生成示例 connector 的转换工具
 - `validator-debugger/`: 本地 `validate`、`list-components`、`preview-request`
 - `docs/format/`: 对外格式文档
 - `docs/superpowers/specs/`: 设计文档留痕
@@ -48,7 +39,7 @@ HDP API connector registry 的 Java MVP。
 - 支持外部 schema 文件引用和 inline schema
 - 支持 `signerRef -> Java signer class` 的本地装载校验
 - 支持 `defaults.qps -> stream.qps -> request.qps` 的覆盖关系
-- 支持将简单 Airbyte manifest 转成 HDP connector，并生成 `conversion-report.json`
+- 支持通过 converter 生成示例 connector，并产出 `conversion-report.json`
 
 ## Quick Start
 
@@ -69,7 +60,7 @@ HDP API connector registry 的 Java MVP。
 
 ## 典型工作流
 
-### 1. 从 Airbyte manifest 转换
+### 1. 生成 demo connector
 
 ```bash
 ./gradlew :converter:run --args="--input path/to/manifest.yaml --output connectors/<name>"
@@ -108,8 +99,9 @@ HDP API connector registry 的 Java MVP。
 
 ## 文档导航
 
-- 项目架构和维护者改动入口：[docs/architecture.md](docs/architecture.md)
-- 项目格式总览和 Airbyte 映射：[docs/format/airbyte-mapping.md](docs/format/airbyte-mapping.md)
+- 贡献入口：[CONTRIBUTING.md](CONTRIBUTING.md)
+- 作者流程入口：[docs/authoring-connectors.md](docs/authoring-connectors.md)
+- 项目架构和维护边界：[docs/architecture.md](docs/architecture.md)
 - `connector.yaml` 逐字段说明：[docs/format/connector-schema.md](docs/format/connector-schema.md)
 - 设计 spec 中文版：[docs/superpowers/specs/2026-04-22-airbyte-compatible-connector-registry-design.zh-CN.md](docs/superpowers/specs/2026-04-22-airbyte-compatible-connector-registry-design.zh-CN.md)
 - 当前 MVP 实现计划：[docs/superpowers/plans/2026-04-22-hdp-connector-registry-mvp.md](docs/superpowers/plans/2026-04-22-hdp-connector-registry-mvp.md)
@@ -118,5 +110,5 @@ HDP API connector registry 的 Java MVP。
 
 当前主线已经完成并合并了首个 MVP，适合继续往两个方向演进：
 
-- 扩大 Airbyte manifest 转换覆盖率
 - 沉淀更多权威 connector 样例和贡献规范
+- 持续完善 connector 作者流程和本地调试体验
