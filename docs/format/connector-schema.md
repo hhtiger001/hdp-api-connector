@@ -1,8 +1,10 @@
 # HDP Connector Schema
 
-This document describes the HDP `ApiConnector` YAML shape used by the registry MVP.
+This document is a non-exhaustive shape and reference summary for the HDP `ApiConnector` YAML used by the registry MVP.
 
-## Top-level keys
+It is not the complete authoritative schema definition.
+
+## Key fields
 
 - `apiVersion`: fixed to `hdp.connector/v1alpha1`
 - `kind`: fixed to `ApiConnector`
