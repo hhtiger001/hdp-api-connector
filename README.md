@@ -13,3 +13,14 @@ HDP connector-definition registry MVP。
 - 不执行真实 HTTP 同步
 - 不实现调度器
 - 不引入 Python runtime
+
+## Quick Start
+
+```bash
+./gradlew test
+./gradlew :converter:run --args="--input converter/src/test/resources/fixtures/airbyte/simple_manifest.yaml --output connectors/demo-users"
+./gradlew :validator-debugger:run --args="validate --connector connectors/demo-users/connector.yaml --config validator-debugger/src/test/resources/fixtures/config/valid-config.json"
+./gradlew :validator-debugger:run --args="preview-request --connector connectors/demo-users/connector.yaml --stream users --config validator-debugger/src/test/resources/fixtures/config/preview-config.json"
+```
+
+`connectors/demo-users` 会由 `converter` 生成；后续的 `validate` 和 `preview-request` 命令都基于这份生成产物运行。
