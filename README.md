@@ -33,6 +33,20 @@ HDP API connector registry 的 Java MVP。
 - `docs/superpowers/specs/`: 设计文档留痕
 - `docs/superpowers/plans/`: 实现计划留痕
 
+## 架构概览
+
+当前 MVP 分成三层：
+
+```text
+converter -> connector-model <- validator-debugger
+```
+
+- `connector-model` 是公共定义层，负责 `connector.yaml` 的 Java 模型、YAML 读写、schema 解析和 signer SPI
+- `converter` 依赖 `connector-model`，把外部定义转换成仓库内的 connector 资产
+- `validator-debugger` 依赖 `connector-model`，提供本地静态校验、组件清单和请求预览
+
+这条链路只处理 connector 定义资产，不执行真实 HTTP 同步。更完整的模块职责、处理链路和扩展入口见 [docs/architecture.md](docs/architecture.md)。
+
 ## 当前 MVP 能力
 
 - 支持 `connector.yaml` 顶层结构读取
@@ -60,7 +74,7 @@ HDP API connector registry 的 Java MVP。
 
 ## 典型工作流
 
-### 1. 生成 demo connector
+### 1. 从 Airbyte manifest 生成 connector
 
 ```bash
 ./gradlew :converter:run --args="--input path/to/manifest.yaml --output connectors/<name>"
@@ -72,7 +86,13 @@ HDP API connector registry 的 Java MVP。
 - `schemas/*.json`
 - `conversion-report.json`
 
-### 2. 校验 connector
+如果你是从 Airbyte declarative API connector 迁移，先读 [docs/airbyte-conversion.md](docs/airbyte-conversion.md)。这份文档说明了转换产物、支持的鉴权边界、生成物结构和本地验证命令。
+
+### 2. 正常开发 connector
+
+如果不是从 Airbyte manifest 转换，而是手写或维护普通 connector，按 [docs/authoring-connectors.md](docs/authoring-connectors.md) 的作者流程处理。
+
+### 3. 校验 connector
 
 ```bash
 ./gradlew :validator-debugger:run --args="validate --connector connectors/<name>/connector.yaml --config path/to/config.json"
@@ -84,7 +104,7 @@ HDP API connector registry 的 Java MVP。
 - `schema.ref` 是否能解析
 - signer 是否能装载
 
-### 3. 预览最终请求
+### 4. 预览最终请求
 
 ```bash
 ./gradlew :validator-debugger:run --args="preview-request --connector connectors/<name>/connector.yaml --stream <stream-name> --config path/to/config.json"
@@ -100,7 +120,8 @@ HDP API connector registry 的 Java MVP。
 ## 文档导航
 
 - 贡献入口：[CONTRIBUTING.md](CONTRIBUTING.md)
-- 作者流程入口：[docs/authoring-connectors.md](docs/authoring-connectors.md)
+- Airbyte 转换流程：[docs/airbyte-conversion.md](docs/airbyte-conversion.md)
+- 普通 connector 开发提交：[docs/authoring-connectors.md](docs/authoring-connectors.md)
 - 项目架构和维护边界：[docs/architecture.md](docs/architecture.md)
 - `connector.yaml` 逐字段说明：[docs/format/connector-schema.md](docs/format/connector-schema.md)
 - 当前 MVP 实现计划：[docs/superpowers/plans/2026-04-22-hdp-connector-registry-mvp.md](docs/superpowers/plans/2026-04-22-hdp-connector-registry-mvp.md)

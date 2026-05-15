@@ -1,0 +1,23 @@
+apiVersion: hdp.connector/v1alpha1
+kind: ApiConnector
+metadata:
+  name: base-path-demo
+spec:
+  connectionSpec:
+    type: object
+    properties: {}
+  definitions:
+    requesters:
+      base_requester:
+        urlBase: https://pokeapi.co/api/v2/pokemon
+    authenticators: {}
+  signers: {}
+  streams:
+    - name: pokemon
+      request:
+        requesterRef: base_requester
+        path: /bulbasaur
+        method: GET
+      schema:
+        inline:
+          type: object

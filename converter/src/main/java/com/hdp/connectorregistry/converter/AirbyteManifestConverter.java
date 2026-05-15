@@ -2,6 +2,7 @@ package com.hdp.connectorregistry.converter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hdp.connectorregistry.model.ApiConnector;
 import com.hdp.connectorregistry.model.ConnectorSpec;
 import com.hdp.connectorregistry.model.Defaults;
@@ -49,9 +50,9 @@ public final class AirbyteManifestConverter {
                     streamsNode.isMissingNode() ? null : streamsNode.toString()));
         } else {
             for (int index = 0; index < streamsNode.size(); index++) {
-                JsonNode streamNode = streamsNode.get(index);
+                JsonNode streamNode = resolveLocalRef(manifest, streamsNode.get(index));
                 MappedStream mappedStream =
-                        mapStream(streamNode, index, definitionBuckets.requesters(), budgetMapping.qps(), issues);
+                        mapStream(manifest, streamNode, index, definitionBuckets.requesters(), budgetMapping.qps(), issues);
                 streams.add(mappedStream.stream());
 
                 if (mappedStream.schemaJson() != null && mappedStream.stream().schema() != null) {
@@ -108,7 +109,7 @@ public final class AirbyteManifestConverter {
             Map.Entry<String, JsonNode> entry = fields.next();
             JsonNode definition = entry.getValue();
             if (looksLikeRequester(definition)) {
-                requesters.put(entry.getKey(), definition.deepCopy());
+                requesters.put(entry.getKey(), normalizeRequester(definition));
             }
             if (looksLikeAuthenticator(definition)) {
                 authenticators.put(entry.getKey(), definition.deepCopy());
@@ -119,6 +120,7 @@ public final class AirbyteManifestConverter {
     }
 
     private MappedStream mapStream(
+            JsonNode manifest,
             JsonNode streamNode,
             int index,
             Map<String, JsonNode> requesters,
@@ -127,7 +129,7 @@ public final class AirbyteManifestConverter {
         String streamName = streamNode.path("name").asText("stream-" + (index + 1));
         detectCustomComponent(streamNode, "/streams/" + index, issues);
 
-        JsonNode schema = extractSchema(streamNode);
+        JsonNode schema = extractSchema(manifest, streamNode);
         SchemaDefinition schemaDefinition = null;
         if (schema.isMissingNode() || schema.isNull()) {
             issues.add(new ConversionIssue(
@@ -258,6 +260,7 @@ public final class AirbyteManifestConverter {
     private boolean looksLikeRequester(JsonNode definition) {
         String type = definition.path("type").asText("");
         return definition.has("urlBase")
+                || definition.has("url_base")
                 || definition.has("path")
                 || definition.has("http_method")
                 || type.endsWith("Requester")
@@ -271,23 +274,33 @@ public final class AirbyteManifestConverter {
                 || type.endsWith("Authenticator");
     }
 
-    private JsonNode extractSchema(JsonNode streamNode) {
+    private JsonNode extractSchema(JsonNode manifest, JsonNode streamNode) {
         JsonNode schema = streamNode.path("schema_loader").path("schema");
         if (!schema.isMissingNode() && !schema.isNull()) {
-            return schema;
+            return resolveLocalRef(manifest, schema);
         }
 
         schema = streamNode.path("json_schema");
         if (!schema.isMissingNode() && !schema.isNull()) {
-            return schema;
+            return resolveLocalRef(manifest, schema);
         }
 
         schema = streamNode.path("schema");
         if (!schema.isMissingNode() && !schema.isNull()) {
-            return schema;
+            return resolveLocalRef(manifest, schema);
         }
 
         return MissingNodeHolder.INSTANCE;
+    }
+
+    private JsonNode resolveLocalRef(JsonNode root, JsonNode node) {
+        String ref = textValue(node.path("$ref"));
+        if (ref == null || !ref.startsWith("#/")) {
+            return node;
+        }
+
+        JsonNode resolved = root.at(ref.substring(1));
+        return resolved.isMissingNode() ? node : resolved;
     }
 
     private String requesterRef(JsonNode streamNode, String streamName, Map<String, JsonNode> requesters) {
@@ -299,11 +312,11 @@ public final class AirbyteManifestConverter {
         JsonNode inlineRequester = streamNode.path("retriever").path("requester");
         if (inlineRequester.isObject() && !inlineRequester.isEmpty()) {
             String requesterKey = uniqueRequesterKey(streamName, requesters);
-            requesters.put(requesterKey, inlineRequester.deepCopy());
+            requesters.put(requesterKey, normalizeRequester(inlineRequester));
             return requesterKey;
         }
 
-        return "inline_requester";
+        return null;
     }
 
     private String requestPath(JsonNode streamNode, String streamName) {
@@ -338,7 +351,7 @@ public final class AirbyteManifestConverter {
             Iterator<Map.Entry<String, JsonNode>> fields = definitionsNode.fields();
             while (fields.hasNext()) {
                 JsonNode definition = fields.next().getValue();
-                String urlBase = textValue(definition.path("urlBase"));
+                String urlBase = textValue(firstPresent(definition, "urlBase", "url_base"));
                 if (urlBase != null) {
                     return urlBase;
                 }
@@ -346,14 +359,38 @@ public final class AirbyteManifestConverter {
         }
 
         for (JsonNode requester : requesters.values()) {
-            String urlBase = textValue(requester.path("urlBase"));
+            String urlBase = textValue(firstPresent(requester, "urlBase", "url_base"));
             if (urlBase != null) {
                 return urlBase;
             }
         }
 
-        JsonNode firstStreamRequester = manifest.path("streams").path(0).path("retriever").path("requester");
-        return textValue(firstStreamRequester.path("urlBase"));
+        JsonNode firstStream = resolveLocalRef(manifest, manifest.path("streams").path(0));
+        JsonNode firstStreamRequester = firstStream.path("retriever").path("requester");
+        return textValue(firstPresent(firstStreamRequester, "urlBase", "url_base"));
+    }
+
+    private JsonNode normalizeRequester(JsonNode requester) {
+        if (!requester.isObject()) {
+            return requester.deepCopy();
+        }
+
+        ObjectNode normalized = requester.deepCopy();
+        renameField(normalized, "url_base", "urlBase");
+        renameField(normalized, "http_method", "method");
+        return normalized;
+    }
+
+    private void renameField(ObjectNode object, String from, String to) {
+        if (object.has(from) && !object.has(to)) {
+            object.set(to, object.get(from));
+            object.remove(from);
+        }
+    }
+
+    private JsonNode firstPresent(JsonNode node, String firstField, String secondField) {
+        JsonNode first = node.path(firstField);
+        return first.isMissingNode() || first.isNull() ? node.path(secondField) : first;
     }
 
     private JsonNode missingAsNull(JsonNode node) {

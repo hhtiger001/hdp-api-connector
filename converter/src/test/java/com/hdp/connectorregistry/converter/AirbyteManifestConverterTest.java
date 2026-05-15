@@ -132,6 +132,54 @@ class AirbyteManifestConverterTest {
     }
 
     @Test
+    void convertsOfficialPokeApiStyleRefsIntoReadyConnector() throws Exception {
+        ConversionResult result = converter.convert(fixture("pokeapi_manifest.yaml"));
+
+        assertThat(result.report().status()).isEqualTo(ConversionStatus.READY);
+        assertThat(result.report().issues()).isEmpty();
+        assertThat(result.connector().spec().defaults().baseUrl()).isEqualTo("https://pokeapi.co/api/v2/pokemon");
+        assertThat(result.connector().spec().definitions().requesters().get("base_requester").path("urlBase").asText())
+                .isEqualTo("https://pokeapi.co/api/v2/pokemon");
+        assertThat(result.connector().spec().definitions().requesters().get("base_requester").has("url_base"))
+                .isFalse();
+
+        assertThat(result.connector().spec().streams()).singleElement().satisfies(stream -> {
+            assertThat(stream.name()).isEqualTo("pokemon");
+            assertThat(stream.request().requesterRef()).isEqualTo("base_requester");
+            assertThat(stream.request().path()).isEqualTo("/{{config['pokemon_name']}}");
+            assertThat(stream.request().method()).isEqualTo("GET");
+            assertThat(stream.schema().ref()).isEqualTo("schemas/pokemon.json");
+        });
+        assertThat(result.schemasByPath()).containsOnlyKeys("schemas/pokemon.json");
+        assertThat(result.schemasByPath().get("schemas/pokemon.json").path("properties").path("name").path("type"))
+                .hasSize(2);
+    }
+
+    @Test
+    void convertsOfficialClockifyStyleInlineRequestersIntoReadyConnector() throws Exception {
+        ConversionResult result = converter.convert(fixture("clockify_manifest.yaml"));
+
+        assertThat(result.report().status()).isEqualTo(ConversionStatus.READY);
+        assertThat(result.report().issues()).isEmpty();
+        assertThat(result.connector().spec().streams()).extracting("name")
+                .containsExactly("users", "projects");
+        assertThat(result.schemasByPath()).containsOnlyKeys("schemas/users.json", "schemas/projects.json");
+
+        JsonNode usersRequester = result.connector().spec().definitions().requesters().get("users_requester");
+        assertThat(usersRequester.path("urlBase").asText()).isEqualTo("https://api.clockify.me/api/v1/");
+        assertThat(usersRequester.path("method").asText()).isEqualTo("GET");
+        assertThat(usersRequester.has("url_base")).isFalse();
+        assertThat(usersRequester.has("http_method")).isFalse();
+
+        assertThat(result.connector().spec().streams().get(0).request().requesterRef()).isEqualTo("users_requester");
+        assertThat(result.connector().spec().streams().get(0).request().path())
+                .isEqualTo("/workspaces/{{ config['workspace_id'] }}/users");
+        assertThat(result.connector().spec().streams().get(1).request().requesterRef()).isEqualTo("projects_requester");
+        assertThat(result.connector().spec().streams().get(1).request().path())
+                .isEqualTo("/workspaces/{{ config['workspace_id'] }}/projects");
+    }
+
+    @Test
     void writesConnectorSchemasAndConversionReport() throws Exception {
         ConversionResult result = converter.convert(fixture("simple_manifest.yaml"));
 

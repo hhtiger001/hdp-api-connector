@@ -1,0 +1,175 @@
+{
+  "type" : "object",
+  "$schema" : "http://json-schema.org/draft-07/schema#",
+  "additionalProperties" : true,
+  "properties" : {
+    "activeWorkspace" : {
+      "type" : [ "null", "string" ],
+      "description" : "The ID of the active workspace for the user."
+    },
+    "customFields" : {
+      "type" : [ "null", "array" ],
+      "description" : "Any custom fields associated with the user's profile."
+    },
+    "defaultWorkspace" : {
+      "type" : [ "null", "string" ],
+      "description" : "The default workspace ID for the user."
+    },
+    "email" : {
+      "type" : [ "null", "string" ],
+      "description" : "The email address of the user."
+    },
+    "id" : {
+      "type" : [ "null", "string" ],
+      "description" : "The unique identifier of the user."
+    },
+    "memberships" : {
+      "type" : [ "null", "array" ],
+      "description" : "List of memberships the user belongs to."
+    },
+    "name" : {
+      "type" : [ "null", "string" ],
+      "description" : "The name of the user."
+    },
+    "profilePicture" : {
+      "type" : [ "null", "string" ],
+      "description" : "URL to the user's profile picture."
+    },
+    "settings" : {
+      "type" : [ "null", "object" ],
+      "description" : "User-specific settings for the user account.",
+      "properties" : {
+        "alerts" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's alerts settings."
+        },
+        "approval" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's approval settings."
+        },
+        "collapseAllProjectLists" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's preference for collapsing all project lists."
+        },
+        "dashboardPinToTop" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's preference for pinning dashboard to the top."
+        },
+        "dashboardSelection" : {
+          "type" : [ "null", "string" ],
+          "description" : "User's dashboard selection."
+        },
+        "dashboardViewType" : {
+          "type" : [ "null", "string" ],
+          "description" : "User's preferred dashboard view type."
+        },
+        "dateFormat" : {
+          "type" : [ "null", "string" ],
+          "description" : "User's preferred date format."
+        },
+        "groupSimilarEntriesDisabled" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's preference for grouping similar entries."
+        },
+        "isCompactViewOn" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's preference for compact view."
+        },
+        "lang" : {
+          "type" : [ "null", "string" ],
+          "description" : "User's preferred language."
+        },
+        "longRunning" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's long running settings."
+        },
+        "multiFactorEnabled" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "Whether multi-factor authentication is enabled."
+        },
+        "myStartOfDay" : {
+          "type" : [ "null", "string" ],
+          "description" : "User's start of day setting."
+        },
+        "onboarding" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's onboarding settings."
+        },
+        "projectListCollapse" : {
+          "type" : [ "null", "integer" ],
+          "description" : "User's project list collapse setting."
+        },
+        "projectPickerTaskFilter" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's task filter for project picker."
+        },
+        "pto" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's PTO settings."
+        },
+        "reminders" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's reminder settings."
+        },
+        "scheduledReports" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's scheduled reports settings."
+        },
+        "scheduling" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's scheduling settings."
+        },
+        "sendNewsletter" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's preference for receiving newsletters."
+        },
+        "showOnlyWorkingDays" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's preference for showing only working days."
+        },
+        "summaryReportSettings" : {
+          "type" : [ "null", "object" ],
+          "description" : "Settings for summary report.",
+          "properties" : {
+            "group" : {
+              "type" : [ "null", "string" ],
+              "description" : "Group setting for summary report."
+            },
+            "subgroup" : {
+              "type" : [ "null", "string" ],
+              "description" : "Subgroup setting for summary report."
+            }
+          }
+        },
+        "theme" : {
+          "type" : [ "null", "string" ],
+          "description" : "User's preferred theme."
+        },
+        "timeFormat" : {
+          "type" : [ "null", "string" ],
+          "description" : "User's preferred time format."
+        },
+        "timeTrackingManual" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's manual time tracking settings."
+        },
+        "timeZone" : {
+          "type" : [ "null", "string" ],
+          "description" : "User's preferred time zone."
+        },
+        "weekStart" : {
+          "type" : [ "null", "string" ],
+          "description" : "User's preferred start of the week."
+        },
+        "weeklyUpdates" : {
+          "type" : [ "null", "boolean" ],
+          "description" : "User's settings for receiving weekly updates."
+        }
+      }
+    },
+    "status" : {
+      "type" : [ "null", "string" ],
+      "description" : "User's status."
+    }
+  }
+}

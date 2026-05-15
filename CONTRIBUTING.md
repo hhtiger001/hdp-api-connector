@@ -34,12 +34,13 @@
 推荐流程：
 
 1. 阅读 [README.md](README.md) 了解项目定位
-2. 阅读 [docs/authoring-connectors.md](docs/authoring-connectors.md) 确认作者流程
-3. 如涉及字段语义，查阅 [docs/format/connector-schema.md](docs/format/connector-schema.md)
-4. 如涉及维护边界，查阅 [docs/architecture.md](docs/architecture.md)
-5. 完成变更后跑最小验证
-6. 自查文档是否需要同步更新
-7. 再提交 commit 或 PR
+2. 如果是 Airbyte 转换任务，阅读 [docs/airbyte-conversion.md](docs/airbyte-conversion.md)
+3. 如果是正常 connector 开发提交，阅读 [docs/authoring-connectors.md](docs/authoring-connectors.md)
+4. 如涉及字段语义，查阅 [docs/format/connector-schema.md](docs/format/connector-schema.md)
+5. 如涉及维护边界，查阅 [docs/architecture.md](docs/architecture.md)
+6. 完成变更后跑最小验证
+7. 自查文档是否需要同步更新
+8. 再提交 commit 或 PR
 
 ## Validation Checklist
 
@@ -61,6 +62,7 @@ git diff --check
 ## Documentation Map
 
 - [README.md](README.md)：项目入口和文档导航
+- [docs/airbyte-conversion.md](docs/airbyte-conversion.md)：Airbyte connector 转换流程
 - [docs/architecture.md](docs/architecture.md)：维护者边界和扩展入口
 - [docs/authoring-connectors.md](docs/authoring-connectors.md)：如何产出合格 connector
 - [docs/format/connector-schema.md](docs/format/connector-schema.md)：`connector.yaml` 逐字段说明

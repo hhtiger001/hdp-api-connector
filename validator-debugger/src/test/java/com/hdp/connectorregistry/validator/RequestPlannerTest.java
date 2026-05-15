@@ -26,6 +26,16 @@ class RequestPlannerTest {
         assertThat(preview.headers()).containsEntry("X-Signature", "signed");
     }
 
+    @Test
+    void preservesBaseUrlPathWhenCombiningRelativeRequestPath() throws Exception {
+        var loaded = new ConnectorLoader().load(resourcePath("fixtures/connector/base-path/connector.yaml"));
+        var config = OBJECT_MAPPER.readTree("{}");
+
+        RequestPreview preview = new RequestPlanner().preview(loaded, "pokemon", config);
+
+        assertThat(preview.url()).isEqualTo("https://pokeapi.co/api/v2/pokemon/bulbasaur");
+    }
+
     private static Path resourcePath(String resourceName) throws URISyntaxException {
         var resource = RequestPlannerTest.class.getClassLoader().getResource(resourceName);
         return Path.of(Objects.requireNonNull(resource, resourceName).toURI());

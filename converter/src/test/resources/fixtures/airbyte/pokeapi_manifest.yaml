@@ -1,0 +1,60 @@
+version: 4.5.4
+type: DeclarativeSource
+check:
+  type: CheckStream
+  stream_names:
+    - pokemon
+definitions:
+  streams:
+    pokemon:
+      type: DeclarativeStream
+      name: pokemon
+      primary_key:
+        - id
+      retriever:
+        type: SimpleRetriever
+        requester:
+          $ref: "#/definitions/base_requester"
+          path: /{{config['pokemon_name']}}
+          http_method: GET
+        record_selector:
+          type: RecordSelector
+          extractor:
+            type: DpathExtractor
+            field_path: []
+      schema_loader:
+        type: InlineSchemaLoader
+        schema:
+          $ref: "#/schemas/pokemon"
+  base_requester:
+    type: HttpRequester
+    url_base: https://pokeapi.co/api/v2/pokemon
+streams:
+  - $ref: "#/definitions/streams/pokemon"
+spec:
+  type: Spec
+  connection_specification:
+    type: object
+    $schema: http://json-schema.org/draft-07/schema#
+    required:
+      - pokemon_name
+    properties:
+      pokemon_name:
+        type: string
+        description: Pokemon requested from the API.
+        title: Pokemon Name
+        pattern: ^[a-z0-9_\-]+$
+schemas:
+  pokemon:
+    type: object
+    $schema: http://json-schema.org/draft-07/schema#
+    additionalProperties: true
+    properties:
+      id:
+        type:
+          - "null"
+          - integer
+      name:
+        type:
+          - "null"
+          - string

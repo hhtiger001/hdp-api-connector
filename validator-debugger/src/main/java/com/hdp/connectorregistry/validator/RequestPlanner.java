@@ -174,7 +174,9 @@ public final class RequestPlanner {
         if (path.matches("^[a-zA-Z][a-zA-Z0-9+.-]*://.*")) {
             return path;
         }
-        return URI.create(baseUrl).resolve(path).toString();
+        String normalizedBaseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        String normalizedPath = path.startsWith("/") ? path.substring(1) : path;
+        return normalizedBaseUrl + "/" + normalizedPath;
     }
 
     private List<String> schemaIdentifiers(LoadedConnector loadedConnector) {

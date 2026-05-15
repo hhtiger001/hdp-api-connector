@@ -1,0 +1,225 @@
+---
+apiVersion: "hdp.connector/v1alpha1"
+kind: "ApiConnector"
+metadata:
+  name: "clockify"
+  displayName: "Clockify"
+  source:
+    type: "airbyte-manifest"
+    originVersion: "4.3.0"
+    originRef: "https://github.com/airbytehq/airbyte/blob/master/airbyte-integrations/connectors/source-clockify/manifest.yaml"
+spec:
+  connectionSpec:
+    type: "object"
+    $schema: "http://json-schema.org/draft-07/schema#"
+    required:
+    - "api_key"
+    - "workspace_id"
+    properties:
+      api_key:
+        type: "string"
+        title: "API Key"
+        airbyte_secret: true
+        description: "You can get your api access_key <a href=\"https://app.clockify.me/user/settings\"\
+          >here</a> This API is Case Sensitive."
+        order: 0
+      api_url:
+        type: "string"
+        title: "API Url"
+        description: "The URL for the Clockify API. This should only need to be modified\
+          \ if connecting to an enterprise version of Clockify."
+        default: "https://api.clockify.me"
+        order: 1
+      workspace_id:
+        type: "string"
+        title: "Workspace Id"
+        description: "WorkSpace Id"
+        order: 2
+    additionalProperties: true
+  defaults:
+    qps: null
+    baseUrl: "https://api.clockify.me/api/v1/"
+  definitions:
+    requesters:
+      base_requester:
+        type: "HttpRequester"
+        authenticator:
+          type: "ApiKeyAuthenticator"
+          api_token: "{{ config['api_key'] }}"
+          path: "workspaces/{{ config['workspace_id'] }}/users"
+          inject_into:
+            type: "RequestOption"
+            field_name: "X-Api-Key"
+            inject_into: "header"
+        urlBase: "https://api.clockify.me/api/v1/"
+      users_requester:
+        type: "HttpRequester"
+        authenticator:
+          type: "ApiKeyAuthenticator"
+          api_token: "{{ config['api_key'] }}"
+          path: "workspaces/{{ config['workspace_id'] }}/users"
+          inject_into:
+            type: "RequestOption"
+            field_name: "X-Api-Key"
+            inject_into: "header"
+        path: "workspaces/{{ config['workspace_id'] }}/users"
+        urlBase: "https://api.clockify.me/api/v1/"
+        method: "GET"
+      projects_requester:
+        type: "HttpRequester"
+        authenticator:
+          type: "ApiKeyAuthenticator"
+          api_token: "{{ config['api_key'] }}"
+          path: "workspaces/{{ config['workspace_id'] }}/users"
+          inject_into:
+            type: "RequestOption"
+            field_name: "X-Api-Key"
+            inject_into: "header"
+        path: "workspaces/{{ config['workspace_id'] }}/projects"
+        urlBase: "https://api.clockify.me/api/v1/"
+        method: "GET"
+      clients_requester:
+        type: "HttpRequester"
+        authenticator:
+          type: "ApiKeyAuthenticator"
+          api_token: "{{ config['api_key'] }}"
+          path: "workspaces/{{ config['workspace_id'] }}/users"
+          inject_into:
+            type: "RequestOption"
+            field_name: "X-Api-Key"
+            inject_into: "header"
+        path: "workspaces/{{ config['workspace_id'] }}/clients"
+        urlBase: "https://api.clockify.me/api/v1/"
+        method: "GET"
+      tags_requester:
+        type: "HttpRequester"
+        authenticator:
+          type: "ApiKeyAuthenticator"
+          api_token: "{{ config['api_key'] }}"
+          path: "workspaces/{{ config['workspace_id'] }}/users"
+          inject_into:
+            type: "RequestOption"
+            field_name: "X-Api-Key"
+            inject_into: "header"
+        path: "workspaces/{{ config['workspace_id'] }}/tags"
+        urlBase: "https://api.clockify.me/api/v1/"
+        method: "GET"
+      user_groups_requester:
+        type: "HttpRequester"
+        authenticator:
+          type: "ApiKeyAuthenticator"
+          api_token: "{{ config['api_key'] }}"
+          path: "workspaces/{{ config['workspace_id'] }}/users"
+          inject_into:
+            type: "RequestOption"
+            field_name: "X-Api-Key"
+            inject_into: "header"
+        path: "workspaces/{{ config['workspace_id'] }}/user-groups"
+        urlBase: "https://api.clockify.me/api/v1/"
+        method: "GET"
+      time_entries_requester:
+        type: "HttpRequester"
+        authenticator:
+          type: "ApiKeyAuthenticator"
+          api_token: "{{ config['api_key'] }}"
+          path: "workspaces/{{ config['workspace_id'] }}/users"
+          inject_into:
+            type: "RequestOption"
+            field_name: "X-Api-Key"
+            inject_into: "header"
+        path: "workspaces/{{ config['workspace_id'] }}/user/{{ stream_partition.user_id}}/time-entries"
+        urlBase: "https://api.clockify.me/api/v1/"
+        method: "GET"
+      tasks_requester:
+        type: "HttpRequester"
+        authenticator:
+          type: "ApiKeyAuthenticator"
+          api_token: "{{ config['api_key'] }}"
+          path: "workspaces/{{ config['workspace_id'] }}/users"
+          inject_into:
+            type: "RequestOption"
+            field_name: "X-Api-Key"
+            inject_into: "header"
+        path: "workspaces/{{ config['workspace_id'] }}/projects/{{ stream_partition.project_id}}/tasks"
+        urlBase: "https://api.clockify.me/api/v1/"
+        method: "GET"
+    authenticators: {}
+  signers: {}
+  streams:
+  - name: "users"
+    qps: null
+    request:
+      requesterRef: "users_requester"
+      path: "/workspaces/{{ config['workspace_id'] }}/users"
+      method: "GET"
+      signerRef: null
+      qps: null
+    schema:
+      ref: "schemas/users.json"
+      inline: null
+  - name: "projects"
+    qps: null
+    request:
+      requesterRef: "projects_requester"
+      path: "/workspaces/{{ config['workspace_id'] }}/projects"
+      method: "GET"
+      signerRef: null
+      qps: null
+    schema:
+      ref: "schemas/projects.json"
+      inline: null
+  - name: "clients"
+    qps: null
+    request:
+      requesterRef: "clients_requester"
+      path: "/workspaces/{{ config['workspace_id'] }}/clients"
+      method: "GET"
+      signerRef: null
+      qps: null
+    schema:
+      ref: "schemas/clients.json"
+      inline: null
+  - name: "tags"
+    qps: null
+    request:
+      requesterRef: "tags_requester"
+      path: "/workspaces/{{ config['workspace_id'] }}/tags"
+      method: "GET"
+      signerRef: null
+      qps: null
+    schema:
+      ref: "schemas/tags.json"
+      inline: null
+  - name: "user_groups"
+    qps: null
+    request:
+      requesterRef: "user_groups_requester"
+      path: "/workspaces/{{ config['workspace_id'] }}/user-groups"
+      method: "GET"
+      signerRef: null
+      qps: null
+    schema:
+      ref: "schemas/user-groups.json"
+      inline: null
+  - name: "time_entries"
+    qps: null
+    request:
+      requesterRef: "time_entries_requester"
+      path: "/workspaces/{{ config['workspace_id'] }}/user/{{ stream_partition.user_id}}/time-entries"
+      method: "GET"
+      signerRef: null
+      qps: null
+    schema:
+      ref: "schemas/time-entries.json"
+      inline: null
+  - name: "tasks"
+    qps: null
+    request:
+      requesterRef: "tasks_requester"
+      path: "/workspaces/{{ config['workspace_id'] }}/projects/{{ stream_partition.project_id}}/tasks"
+      method: "GET"
+      signerRef: null
+      qps: null
+    schema:
+      ref: "schemas/tasks.json"
+      inline: null
