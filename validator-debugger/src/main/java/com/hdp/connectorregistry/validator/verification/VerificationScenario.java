@@ -6,5 +6,5 @@ public record VerificationScenario(
         String name,
         String tool,
         JsonNode input,
-        VerificationRecords records,
+        JsonNode response,
         VerificationExpect expect) {}

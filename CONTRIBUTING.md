@@ -60,7 +60,7 @@ git diff --check
 ./gradlew :validator-debugger:run --args="generate-tests --connector connectors/demo-users/connector.json"
 ```
 
-如果你的 connector 有可用测试账号或公开 API，建议提供本地 `connectors/<name>/secrets/test-config.json` 并运行 `verify-connector`。`secrets` 目录不应提交；验证成功后写回的 `tests/*.verify.json` 中 `records.example` 必须来自真实响应，不能手写假数据。
+如果你的 connector 有可用测试账号或公开 API，建议从 `connectors/<name>/tests/config.example.json` 复制出本地 `connectors/<name>/secrets/test-config.json` 并运行 `verify-connector`。`secrets` 目录不应提交；验证成功后写回的 `tests/*.verify.json` 中 `response` 必须来自真实响应，不能手写假数据。
 
 ## Documentation Map
 

@@ -21,15 +21,21 @@ class ConnectorVerificationRunnerTest {
         AtomicReference<String> apiKey = new AtomicReference<>();
         server.createContext("/users", exchange -> {
             apiKey.set(exchange.getRequestHeaders().getFirst("X-API-Key"));
-            respond(exchange, "{\"records\":[{\"id\":\"user-1\",\"name\":\"User 1\"}]}");
+            respond(exchange, "{\"records\":[{\"id\":\"user-1\",\"name\":\"User 1\",\"ignored\":\"drop\"}]}");
         });
         server.createContext("/projects", exchange -> respond(exchange, "{\"records\":[]}"));
+        server.createContext("/teams", exchange -> respond(exchange, "{\"data\":[{\"id\":\"team-1\",\"name\":\"Team 1\"}]}"));
+        server.createContext("/tasks", exchange -> respond(exchange, "{\"items\":[{\"id\":\"task-1\",\"name\":\"Task 1\"}]}"));
+        server.createContext("/profile", exchange -> respond(exchange, "{\"id\":\"profile-1\",\"name\":\"Profile 1\"}"));
         server.start();
 
         try {
             writeConnector();
             writeScenario("users", "/users");
             writeScenario("projects", "/projects");
+            writeScenario("teams", "/teams");
+            writeScenario("tasks", "/tasks");
+            writeScenario("profile", "/profile");
             Path configPath = tempDir.resolve("test-config.json");
             Files.writeString(configPath, """
                     {
@@ -49,15 +55,27 @@ class ConnectorVerificationRunnerTest {
             var allResults = runner.verify(tempDir.resolve("connector.json"), configPath);
             var usersOnly = runner.verify(tempDir.resolve("connector.json"), configPath, "users");
 
-            assertThat(allResults).extracting(VerificationResult::tool).containsExactly("projects", "users");
+            assertThat(allResults).extracting(VerificationResult::tool)
+                    .containsExactly("profile", "projects", "tasks", "teams", "users");
             assertThat(usersOnly).extracting(VerificationResult::tool).containsExactly("users");
             assertThat(apiKey.get()).isEqualTo("key-1");
             assertThat(Files.readString(tempDir.resolve("tests/users.verify.json")))
-                    .contains("\"example\" : {")
+                    .contains("\"response\" : {")
                     .contains("\"id\" : \"user-1\"")
-                    .contains("\"name\" : \"User 1\"");
+                    .contains("\"name\" : \"User 1\"")
+                    .doesNotContain("ignored")
+                    .doesNotContain("\"records\"");
             assertThat(Files.readString(tempDir.resolve("tests/projects.verify.json")))
-                    .doesNotContain("\"example\"");
+                    .doesNotContain("\"response\"");
+            assertThat(Files.readString(tempDir.resolve("tests/teams.verify.json")))
+                    .contains("\"id\" : \"team-1\"")
+                    .contains("\"name\" : \"Team 1\"");
+            assertThat(Files.readString(tempDir.resolve("tests/tasks.verify.json")))
+                    .contains("\"id\" : \"task-1\"")
+                    .contains("\"name\" : \"Task 1\"");
+            assertThat(Files.readString(tempDir.resolve("tests/profile.verify.json")))
+                    .contains("\"id\" : \"profile-1\"")
+                    .contains("\"name\" : \"Profile 1\"");
         } finally {
             server.stop(0);
         }
@@ -100,12 +118,27 @@ class ConnectorVerificationRunnerTest {
                     {
                       "name": "projects",
                       "endpointRef": "endpoints/projects.json"
+                    },
+                    {
+                      "name": "teams",
+                      "endpointRef": "endpoints/teams.json"
+                    },
+                    {
+                      "name": "tasks",
+                      "endpointRef": "endpoints/tasks.json"
+                    },
+                    {
+                      "name": "profile",
+                      "endpointRef": "endpoints/profile.json"
                     }
                   ]
                 }
                 """);
         Files.writeString(tempDir.resolve("endpoints/users.json"), endpoint("users", "/users"));
         Files.writeString(tempDir.resolve("endpoints/projects.json"), endpoint("projects", "/projects"));
+        Files.writeString(tempDir.resolve("endpoints/teams.json"), endpoint("teams", "/teams"));
+        Files.writeString(tempDir.resolve("endpoints/tasks.json"), endpoint("tasks", "/tasks"));
+        Files.writeString(tempDir.resolve("endpoints/profile.json"), endpoint("profile", "/profile"));
     }
 
     private void writeScenario(String tool, String urlContains) throws Exception {
@@ -115,10 +148,6 @@ class ConnectorVerificationRunnerTest {
                   "name": "%s",
                   "tool": "%s",
                   "input": {},
-                  "records": {
-                    "path": [ "records" ],
-                    "min": 0
-                  },
                   "expect": {
                     "method": "GET",
                     "urlContains": "%s",
@@ -138,7 +167,15 @@ class ConnectorVerificationRunnerTest {
                     "additionalProperties": false
                   },
                   "outputSchema": {
-                    "type": "object"
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    }
                   },
                   "request": {
                     "method": "GET",

@@ -21,7 +21,8 @@ connectors/<name>/
 
 - `connector.json`：connector 入口、连接配置表单、全局请求配置、默认鉴权、endpoint 索引。
 - `endpoints/*.json`：每个接口一个文件，包含 MCP-compatible tool 信息、`inputSchema`、`outputSchema` 和接口级 `request`。
-- `tests/*.verify.json`：每个接口的验证场景，包含测试 input、预期 method/url/status、records 提取规则和真实请求回填的 `records.example`。
+- `tests/*.verify.json`：每个接口的验证场景，包含测试 input、预期 method/url/status 和真实请求回填的 `response`。
+- `tests/config.example.json`：可提交的测试配置模板，不包含真实密钥。
 - Airbyte manifest 转换：把常见 declarative API connector 转成 `connector.json + endpoints/*.json`。
 - 本地调试：`validate`、`list-components`、`preview-request`、`generate-tests`、`verify-connector`。
 
@@ -132,9 +133,9 @@ connector 不保存真实密钥，只保留模板，例如 `{{ config['api_key']
 
 `generate-tests` 只生成测试场景骨架，不生成假的返回示例。
 
-`verify-connector` 会发真实测试请求。请求成功且能按 `records.path` 取到记录时，工具会把第一条真实记录写回 `tests/*.verify.json` 的 `records.example`。这个字段只用于人工审核，不作为断言条件，也不打印到命令输出。
+`verify-connector` 会发真实测试请求。请求成功且能从 JSON 响应中识别出示例记录时，工具会把第一条真实示例写回 `tests/*.verify.json` 的 `response`。这个字段只用于人工审核，不作为断言条件，也不打印到命令输出。
 
-没有真实测试账号、公开 API 或本地 mock 服务时，不应该手写 `records.example`。
+没有真实测试账号、公开 API 或本地 mock 服务时，不应该手写 `response`。
 
 ## 6. 不再推荐的旧结构
 

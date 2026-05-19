@@ -155,7 +155,14 @@ class AirbyteManifestConverterTest {
 
         assertThat(result.report().status()).isEqualTo(ConversionStatus.READY);
         assertThat(result.report().issues()).isEmpty();
-        assertThat(result.endpointsByPath()).containsOnlyKeys("endpoints/users.json", "endpoints/projects.json");
+        assertThat(result.endpointsByPath()).containsOnlyKeys(
+                "endpoints/users.json",
+                "endpoints/projects.json",
+                "endpoints/clients.json",
+                "endpoints/tags.json",
+                "endpoints/user-groups.json",
+                "endpoints/time-entries.json",
+                "endpoints/tasks.json");
         assertThat(result.connector().spec().connectionSpec().path("properties").path("api_key").path("secret").asBoolean())
                 .isTrue();
         assertThat(result.connector().spec().connectionSpec().path("properties").path("api_key").has("airbyte_secret"))
@@ -167,6 +174,14 @@ class AirbyteManifestConverterTest {
                 .isEqualTo("/workspaces/{{ config['workspace_id'] }}/users");
         assertThat(result.endpointsByPath().get("endpoints/projects.json").request().path())
                 .isEqualTo("/workspaces/{{ config['workspace_id'] }}/projects");
+        assertThat(result.endpointsByPath().get("endpoints/time-entries.json").request().path())
+                .isEqualTo("/workspaces/{{ config['workspace_id'] }}/user/{{ input['user_id'] }}/time-entries");
+        assertThat(result.endpointsByPath().get("endpoints/time-entries.json").inputSchema().path("required").path(0).asText())
+                .isEqualTo("user_id");
+        assertThat(result.endpointsByPath().get("endpoints/tasks.json").request().path())
+                .isEqualTo("/workspaces/{{ config['workspace_id'] }}/projects/{{ input['project_id'] }}/tasks");
+        assertThat(result.endpointsByPath().get("endpoints/tasks.json").inputSchema().path("required").path(0).asText())
+                .isEqualTo("project_id");
     }
 
     @Test

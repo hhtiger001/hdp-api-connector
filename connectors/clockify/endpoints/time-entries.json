@@ -1,0 +1,102 @@
+{
+  "name" : "time_entries",
+  "title" : "Time Entries",
+  "inputSchema" : {
+    "type" : "object",
+    "additionalProperties" : false,
+    "required" : [ "user_id" ],
+    "properties" : {
+      "user_id" : {
+        "type" : "string",
+        "description" : "Parent stream partition value."
+      }
+    }
+  },
+  "outputSchema" : {
+    "type" : "object",
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "additionalProperties" : true,
+    "properties" : {
+      "billable" : {
+        "description" : "Indicates if the time entry is billable or not",
+        "type" : "boolean"
+      },
+      "customFieldValues" : {
+        "description" : "Values for custom fields related to the time entry",
+        "type" : "array"
+      },
+      "description" : {
+        "description" : "Description or notes about the time entry",
+        "type" : "string"
+      },
+      "id" : {
+        "description" : "Unique identifier for the time entry",
+        "type" : "string"
+      },
+      "isLocked" : {
+        "description" : "Indicates if the time entry is locked or not",
+        "type" : "boolean"
+      },
+      "kioskId" : {
+        "description" : "Identifier for the kiosk associated with the time entry",
+        "type" : "string"
+      },
+      "projectId" : {
+        "description" : "Unique identifier for the project related to the time entry",
+        "type" : "string"
+      },
+      "tagIds" : {
+        "description" : "Identifiers of tags associated with the time entry",
+        "anyOf" : [ {
+          "type" : "null"
+        }, {
+          "items" : {
+            "type" : "string"
+          },
+          "type" : "array"
+        } ]
+      },
+      "taskId" : {
+        "description" : "Unique identifier for the task related to the time entry",
+        "type" : "string"
+      },
+      "timeInterval" : {
+        "description" : "Represents the time interval for the time entry",
+        "properties" : {
+          "duration" : {
+            "description" : "Duration of the time entry",
+            "type" : "string"
+          },
+          "end" : {
+            "description" : "End timestamp of the time entry",
+            "type" : "string"
+          },
+          "start" : {
+            "description" : "Start timestamp of the time entry",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "type" : {
+        "description" : "Type of the time entry (e.g., time, leave, holiday)",
+        "type" : "string"
+      },
+      "userId" : {
+        "description" : "Unique identifier for the user associated with the time entry",
+        "type" : "string"
+      },
+      "workspaceId" : {
+        "description" : "Unique identifier for the workspace of the time entry",
+        "type" : "string"
+      }
+    }
+  },
+  "request" : {
+    "path" : "/workspaces/{{ config['workspace_id'] }}/user/{{ input['user_id'] }}/time-entries",
+    "method" : "GET"
+  },
+  "annotations" : {
+    "readOnlyHint" : true
+  }
+}

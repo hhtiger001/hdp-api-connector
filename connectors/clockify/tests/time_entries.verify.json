@@ -1,0 +1,32 @@
+{
+  "name": "time_entries",
+  "tool": "time_entries",
+  "input": {
+    "user_id": "TODO"
+  },
+  "expect": {
+    "method": "GET",
+    "urlContains": "/time-entries",
+    "statusCode": 200,
+    "responseJson": true
+  },
+  "response": {
+    "billable": true,
+    "customFieldValues": [],
+    "description": "[SAMPLE] aef90937-1ea1-4639-b186-a64dfdc93b31",
+    "id": "6a0c39e33c924007361a75c7",
+    "isLocked": false,
+    "kioskId": null,
+    "projectId": "6a0c39e33c924007361a753b",
+    "tagIds": [],
+    "taskId": "6a0c39e33c924007361a7545",
+    "timeInterval": {
+      "duration": "PT4H",
+      "end": "2026-05-19T16:00:00Z",
+      "start": "2026-05-19T12:00:00Z"
+    },
+    "type": "REGULAR",
+    "userId": "6a0c39e33c924007361a7522",
+    "workspaceId": "6a0c39e33c924007361a74ed"
+  }
+}

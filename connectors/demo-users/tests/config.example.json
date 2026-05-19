@@ -1,0 +1,9 @@
+{
+  "config": {
+    "base_url": "TODO",
+    "api_key": "TODO"
+  },
+  "input": {
+    "users": {}
+  }
+}

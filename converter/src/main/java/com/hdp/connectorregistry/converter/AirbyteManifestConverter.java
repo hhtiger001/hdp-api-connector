@@ -19,6 +19,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class AirbyteManifestConverter {
     private static final String CUSTOM_COMPONENT_REQUIRES_MANUAL_REVIEW =
@@ -27,6 +29,8 @@ public final class AirbyteManifestConverter {
     private static final String API_BUDGET_REQUIRES_MANUAL_REVIEW =
             "API_BUDGET_REQUIRES_MANUAL_REVIEW";
     private static final String STREAM_SCHEMA_MISSING = "STREAM_SCHEMA_MISSING";
+    private static final Pattern STREAM_PARTITION_TEMPLATE = Pattern.compile(
+            "\\{\\{\\s*stream_partition(?:\\.([A-Za-z0-9_-]+)|\\[['\"]([^'\"]+)['\"]])\\s*}}");
 
     private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
 
@@ -138,15 +142,17 @@ public final class AirbyteManifestConverter {
                     null));
         }
 
+        PartitionInputMapping partitionInputMapping = mapPartitionInputs(requestPath(streamNode, streamName));
+
         EndpointDefinition endpoint = new EndpointDefinition(
                 streamName,
                 titleize(streamName),
                 null,
-                emptyInputSchema(),
+                partitionInputMapping.inputSchema(),
                 schema.isMissingNode() || schema.isNull() ? NullNode.getInstance() : schema.deepCopy(),
                 new RequestDefinition(
                         null,
-                        requestPath(streamNode, streamName),
+                        partitionInputMapping.path(),
                         requestMethod(streamNode),
                         null,
                         null,
@@ -372,6 +378,40 @@ public final class AirbyteManifestConverter {
             return path.startsWith("/") ? path : "/" + path;
         }
         return "/" + slugify(streamName);
+    }
+
+    private PartitionInputMapping mapPartitionInputs(String path) {
+        Matcher matcher = STREAM_PARTITION_TEMPLATE.matcher(path);
+        List<String> fields = new ArrayList<>();
+        StringBuffer mappedPath = new StringBuffer();
+        while (matcher.find()) {
+            String field = matcher.group(1) == null ? matcher.group(2) : matcher.group(1);
+            if (field != null && !fields.contains(field)) {
+                fields.add(field);
+            }
+            matcher.appendReplacement(mappedPath, Matcher.quoteReplacement("{{ input['" + field + "'] }}"));
+        }
+        matcher.appendTail(mappedPath);
+
+        if (fields.isEmpty()) {
+            return new PartitionInputMapping(path, emptyInputSchema());
+        }
+        return new PartitionInputMapping(mappedPath.toString(), inputSchemaForFields(fields));
+    }
+
+    private JsonNode inputSchemaForFields(List<String> fields) {
+        ObjectNode schema = JSON.objectNode();
+        schema.put("type", "object");
+        schema.put("additionalProperties", false);
+        ArrayNode required = schema.putArray("required");
+        ObjectNode properties = schema.putObject("properties");
+        for (String field : fields) {
+            required.add(field);
+            ObjectNode property = properties.putObject(field);
+            property.put("type", "string");
+            property.put("description", "Parent stream partition value.");
+        }
+        return schema;
     }
 
     private String requestMethod(JsonNode streamNode) {
@@ -715,6 +755,10 @@ public final class AirbyteManifestConverter {
     private record MappedEndpoint(
             String path,
             EndpointDefinition endpoint) {}
+
+    private record PartitionInputMapping(
+            String path,
+            JsonNode inputSchema) {}
 
     private static final class MissingNodeHolder {
         private static final JsonNode INSTANCE = NullNode.getInstance();

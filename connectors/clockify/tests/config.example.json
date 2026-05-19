@@ -1,0 +1,19 @@
+{
+  "config" : {
+    "api_key" : "TODO",
+    "workspace_id" : "TODO"
+  },
+  "input" : {
+    "users" : { },
+    "projects" : { },
+    "clients" : { },
+    "tags" : { },
+    "user_groups" : { },
+    "time_entries" : {
+      "user_id" : "TODO"
+    },
+    "tasks" : {
+      "project_id" : "TODO"
+    }
+  }
+}

@@ -1,10 +1,10 @@
 {
-  "name": "users",
-  "tool": "users",
+  "name": "user_groups",
+  "tool": "user_groups",
   "input": {},
   "expect": {
     "method": "GET",
-    "urlContains": "/users",
+    "urlContains": "/user-groups",
     "statusCode": 200,
     "responseJson": true
   }

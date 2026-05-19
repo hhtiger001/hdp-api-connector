@@ -69,6 +69,19 @@ class RequestPlannerTest {
                 .containsEntry("X-HDP-Key", "key-1");
     }
 
+    @Test
+    void resolvesEndpointInputTemplatesForToolPreview() throws Exception {
+        Path connectorDirectory = connectorJsonFixtureWithInputPath();
+        var loaded = new ConnectorLoader().load(connectorDirectory.resolve("connector.json"));
+        var config = OBJECT_MAPPER.readTree("{\"workspace_id\":\"workspace-1\"}");
+        var input = OBJECT_MAPPER.readTree("{\"user_id\":\"user-1\"}");
+
+        RequestPreview preview = new RequestPlanner().preview(loaded, "time_entries", config, input);
+
+        assertThat(preview.url())
+                .isEqualTo("https://api.example.com/workspaces/workspace-1/user/user-1/time-entries");
+    }
+
     private static Path connectorJsonFixtureWithExtensionAuth() throws IOException {
         Path connectorDirectory = Files.createTempDirectory("validator-extension-auth-connector");
         Files.createDirectories(connectorDirectory.resolve("endpoints"));
@@ -176,6 +189,53 @@ class RequestPlannerTest {
                   "request": {
                     "method": "GET",
                     "path": "/signed"
+                  }
+                }
+                """);
+        return connectorDirectory;
+    }
+
+    private static Path connectorJsonFixtureWithInputPath() throws IOException {
+        Path connectorDirectory = Files.createTempDirectory("validator-input-path-connector");
+        Files.createDirectories(connectorDirectory.resolve("endpoints"));
+        Files.writeString(connectorDirectory.resolve("connector.json"), """
+                {
+                  "apiVersion": "hdp.connector/v1alpha1",
+                  "metadata": {
+                    "name": "clockify"
+                  },
+                  "connectionSpec": {
+                    "type": "object"
+                  },
+                  "request": {
+                    "baseUrl": "https://api.example.com"
+                  },
+                  "tools": [
+                    {
+                      "name": "time_entries",
+                      "endpointRef": "endpoints/time-entries.json"
+                    }
+                  ]
+                }
+                """);
+        Files.writeString(connectorDirectory.resolve("endpoints/time-entries.json"), """
+                {
+                  "name": "time_entries",
+                  "inputSchema": {
+                    "type": "object",
+                    "required": ["user_id"],
+                    "properties": {
+                      "user_id": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "outputSchema": {
+                    "type": "object"
+                  },
+                  "request": {
+                    "method": "GET",
+                    "path": "/workspaces/{{ config['workspace_id'] }}/user/{{ input['user_id'] }}/time-entries"
                   }
                 }
                 """);

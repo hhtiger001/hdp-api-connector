@@ -1,0 +1,28 @@
+{
+  "name": "tasks",
+  "tool": "tasks",
+  "input": {
+    "project_id": "TODO"
+  },
+  "expect": {
+    "method": "GET",
+    "urlContains": "/tasks",
+    "statusCode": 200,
+    "responseJson": true
+  },
+  "response": {
+    "budgetEstimate": 0,
+    "assigneeId": null,
+    "assigneeIds": [],
+    "billable": false,
+    "costRate": null,
+    "duration": null,
+    "estimate": "PT0S",
+    "hourlyRate": null,
+    "id": "6a0c39e33c924007361a7542",
+    "name": "Administration",
+    "projectId": "6a0c39e33c924007361a753a",
+    "status": "ACTIVE",
+    "userGroupIds": []
+  }
+}

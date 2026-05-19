@@ -2,14 +2,55 @@
   "name": "users",
   "tool": "users",
   "input": {},
-  "records": {
-    "path": [],
-    "min": 1
-  },
   "expect": {
     "method": "GET",
-    "urlContains": "/workspaces/",
+    "urlContains": "/users",
     "statusCode": 200,
     "responseJson": true
+  },
+  "response": {
+    "activeWorkspace": "6a0c39e33c924007361a74ed",
+    "customFields": [],
+    "defaultWorkspace": "6a0c39e33c924007361a74ed",
+    "email": "amy.smithfcafbf3e07c0edfa@clockify-test.com",
+    "id": "6a0c39e33c924007361a7522",
+    "memberships": [],
+    "name": "[SAMPLE] Amy Smith",
+    "profilePicture": "https://clockify-dev.s3.eu-central-1.amazonaws.com/2025-02-26T05%3A11%3A55.558ZFEMALE_2.png",
+    "settings": {
+      "alerts": false,
+      "approval": false,
+      "collapseAllProjectLists": false,
+      "dashboardPinToTop": false,
+      "dashboardSelection": "ME",
+      "dashboardViewType": "PROJECT",
+      "dateFormat": "DD/MM/YYYY",
+      "groupSimilarEntriesDisabled": false,
+      "isCompactViewOn": false,
+      "lang": "EN",
+      "longRunning": false,
+      "multiFactorEnabled": false,
+      "myStartOfDay": "09:00",
+      "onboarding": false,
+      "projectListCollapse": 50,
+      "projectPickerTaskFilter": false,
+      "pto": false,
+      "reminders": false,
+      "scheduledReports": false,
+      "scheduling": false,
+      "sendNewsletter": false,
+      "showOnlyWorkingDays": false,
+      "summaryReportSettings": {
+        "group": "Project",
+        "subgroup": "Time Entry"
+      },
+      "theme": "DEFAULT",
+      "timeFormat": "HOUR24",
+      "timeTrackingManual": false,
+      "timeZone": "Asia/Shanghai",
+      "weekStart": "MONDAY",
+      "weeklyUpdates": false
+    },
+    "status": "ACTIVE"
   }
 }

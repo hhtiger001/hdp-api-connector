@@ -12,13 +12,25 @@
       "api_key" : {
         "type" : "string",
         "title" : "API Key",
+        "description" : "You can get your api access_key <a href=\"https://app.clockify.me/user/settings\">here</a> This API is Case Sensitive.",
+        "order" : 0,
         "secret" : true
+      },
+      "api_url" : {
+        "type" : "string",
+        "title" : "API Url",
+        "description" : "The URL for the Clockify API. This should only need to be modified if connecting to an enterprise version of Clockify.",
+        "default" : "https://api.clockify.me",
+        "order" : 1
       },
       "workspace_id" : {
         "type" : "string",
-        "title" : "Workspace Id"
+        "title" : "Workspace Id",
+        "description" : "WorkSpace Id",
+        "order" : 2
       }
-    }
+    },
+    "additionalProperties" : true
   },
   "request" : {
     "baseUrl" : "https://api.clockify.me/api/v1/",
@@ -37,5 +49,25 @@
     "name" : "projects",
     "title" : "Projects",
     "endpointRef" : "endpoints/projects.json"
+  }, {
+    "name" : "clients",
+    "title" : "Clients",
+    "endpointRef" : "endpoints/clients.json"
+  }, {
+    "name" : "tags",
+    "title" : "Tags",
+    "endpointRef" : "endpoints/tags.json"
+  }, {
+    "name" : "user_groups",
+    "title" : "User Groups",
+    "endpointRef" : "endpoints/user-groups.json"
+  }, {
+    "name" : "time_entries",
+    "title" : "Time Entries",
+    "endpointRef" : "endpoints/time-entries.json"
+  }, {
+    "name" : "tasks",
+    "title" : "Tasks",
+    "endpointRef" : "endpoints/tasks.json"
   } ]
 }

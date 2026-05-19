@@ -1,0 +1,111 @@
+{
+  "name" : "tasks",
+  "title" : "Tasks",
+  "inputSchema" : {
+    "type" : "object",
+    "additionalProperties" : false,
+    "required" : [ "project_id" ],
+    "properties" : {
+      "project_id" : {
+        "type" : "string",
+        "description" : "Parent stream partition value."
+      }
+    }
+  },
+  "outputSchema" : {
+    "type" : "object",
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "additionalProperties" : true,
+    "properties" : {
+      "budgetEstimate" : {
+        "description" : "Estimated budget for the task.",
+        "type" : "number"
+      },
+      "assigneeId" : {
+        "description" : "The unique identifier of the user assigned to the task.",
+        "type" : "string"
+      },
+      "assigneeIds" : {
+        "description" : "The list of unique identifiers of users assigned to the task.",
+        "items" : {
+          "description" : "Unique identifier of a user.",
+          "type" : "string"
+        },
+        "type" : "array"
+      },
+      "billable" : {
+        "description" : "Indicates whether the task is billable or not.",
+        "type" : "boolean"
+      },
+      "costRate" : {
+        "description" : "Cost rate associated with the task.",
+        "anyOf" : [ {
+          "type" : "null"
+        }, {
+          "type" : "string"
+        }, {
+          "properties" : {
+            "amount" : {
+              "type" : [ "string", "integer" ]
+            },
+            "currency" : {
+              "type" : "string"
+            }
+          },
+          "type" : "object"
+        } ]
+      },
+      "duration" : {
+        "description" : "Total duration of the task.",
+        "type" : "string"
+      },
+      "estimate" : {
+        "description" : "Estimated time required to complete the task.",
+        "type" : "string"
+      },
+      "hourlyRate" : {
+        "description" : "Hourly rate for billing purposes.",
+        "anyOf" : [ {
+          "type" : "null"
+        }, {
+          "properties" : {
+            "amount" : {
+              "type" : "integer"
+            },
+            "currency" : {
+              "type" : "string"
+            }
+          },
+          "type" : "object"
+        } ]
+      },
+      "id" : {
+        "description" : "Unique identifier of the task.",
+        "type" : "string"
+      },
+      "name" : {
+        "description" : "Name or title of the task.",
+        "type" : "string"
+      },
+      "projectId" : {
+        "description" : "Unique identifier of the project the task belongs to.",
+        "type" : "string"
+      },
+      "status" : {
+        "description" : "Current status of the task.",
+        "type" : "string"
+      },
+      "userGroupIds" : {
+        "description" : "List of unique identifiers of user groups associated with the task.",
+        "type" : "array"
+      }
+    }
+  },
+  "request" : {
+    "path" : "/workspaces/{{ config['workspace_id'] }}/projects/{{ input['project_id'] }}/tasks",
+    "method" : "GET"
+  },
+  "annotations" : {
+    "readOnlyHint" : true
+  }
+}

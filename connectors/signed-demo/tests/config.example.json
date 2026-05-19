@@ -1,0 +1,10 @@
+{
+  "config": {
+    "base_url": "TODO",
+    "api_key": "TODO",
+    "api_secret": "TODO"
+  },
+  "input": {
+    "signed-records": {}
+  }
+}

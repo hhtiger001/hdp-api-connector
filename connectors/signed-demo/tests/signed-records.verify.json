@@ -2,12 +2,6 @@
   "name": "signed-records",
   "tool": "signed-records",
   "input": {},
-  "records": {
-    "path": [
-      "records"
-    ],
-    "min": 0
-  },
   "expect": {
     "method": "GET",
     "urlContains": "/signed-records",

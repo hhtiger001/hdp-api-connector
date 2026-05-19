@@ -19,7 +19,10 @@ class ConnectorTestGeneratorTest {
 
         var generated = new ConnectorTestGenerator().generate(tempDir.resolve("connector.json"));
 
-        assertThat(generated).containsExactly(tempDir.resolve("tests/projects.verify.json"));
+        assertThat(generated)
+                .containsExactly(
+                        tempDir.resolve("tests/config.example.json"),
+                        tempDir.resolve("tests/projects.verify.json"));
         assertThat(Files.readString(tempDir.resolve("tests/users.verify.json"))).isEqualTo("{\"name\":\"custom\"}");
         String projects = Files.readString(tempDir.resolve("tests/projects.verify.json"));
         assertThat(projects)
@@ -27,7 +30,22 @@ class ConnectorTestGeneratorTest {
                 .contains("\"method\" : \"POST\"")
                 .contains("\"urlContains\" : \"/projects\"")
                 .contains("\"name\" : \"TODO\"")
+                .doesNotContain("\"records\"")
+                .doesNotContain("\"response\"")
                 .doesNotContain("\"example\"");
+        String config = Files.readString(tempDir.resolve("tests/config.example.json"));
+        assertThat(config)
+                .contains("\"config\" : {")
+                .contains("\"api_key\" : \"TODO\"")
+                .contains("\"input\" : {")
+                .contains("\"projects\" : {")
+                .contains("\"name\" : \"TODO\"");
+
+        Files.writeString(tempDir.resolve("tests/config.example.json"), "{\"config\":\"custom\"}");
+        var secondRun = new ConnectorTestGenerator().generate(tempDir.resolve("connector.json"));
+
+        assertThat(secondRun).isEmpty();
+        assertThat(Files.readString(tempDir.resolve("tests/config.example.json"))).isEqualTo("{\"config\":\"custom\"}");
     }
 
     private void writeConnector() throws Exception {
@@ -39,7 +57,13 @@ class ConnectorTestGeneratorTest {
                     "name": "generated-demo"
                   },
                   "connectionSpec": {
-                    "type": "object"
+                    "type": "object",
+                    "required": [ "api_key" ],
+                    "properties": {
+                      "api_key": {
+                        "type": "string"
+                      }
+                    }
                   },
                   "request": {
                     "baseUrl": "http://127.0.0.1"

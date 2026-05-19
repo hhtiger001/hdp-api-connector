@@ -10,11 +10,334 @@
     "$schema" : "http://json-schema.org/draft-07/schema#",
     "additionalProperties" : true,
     "properties" : {
+      "abilities" : {
+        "type" : "array",
+        "items" : {
+          "type" : "object",
+          "additionalProperties" : true,
+          "properties" : {
+            "ability" : {
+              "type" : "object",
+              "additionalProperties" : true,
+              "properties" : {
+                "name" : {
+                  "type" : "string"
+                },
+                "url" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "is_hidden" : {
+              "type" : "boolean"
+            },
+            "slot" : {
+              "type" : "integer"
+            }
+          }
+        }
+      },
+      "base_experience" : {
+        "type" : "integer"
+      },
+      "forms" : {
+        "type" : "array",
+        "items" : {
+          "type" : "object",
+          "additionalProperties" : true,
+          "properties" : {
+            "name" : {
+              "type" : "string"
+            },
+            "url" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "game_indices" : {
+        "type" : "array",
+        "items" : {
+          "type" : "object",
+          "additionalProperties" : true,
+          "properties" : {
+            "version" : {
+              "type" : "object",
+              "additionalProperties" : true,
+              "properties" : {
+                "name" : {
+                  "type" : "string"
+                },
+                "url" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "game_index" : {
+              "type" : "integer"
+            }
+          }
+        }
+      },
+      "height" : {
+        "type" : "integer"
+      },
+      "held_items" : {
+        "type" : "array",
+        "items" : {
+          "type" : "object",
+          "additionalProperties" : true,
+          "properties" : {
+            "item" : {
+              "type" : "object",
+              "additionalProperties" : true,
+              "properties" : {
+                "name" : {
+                  "type" : "string"
+                },
+                "url" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "version_details" : {
+              "type" : "array",
+              "items" : {
+                "type" : "object",
+                "additionalProperties" : true,
+                "properties" : {
+                  "version" : {
+                    "type" : "object",
+                    "additionalProperties" : true,
+                    "properties" : {
+                      "name" : {
+                        "type" : "string"
+                      },
+                      "url" : {
+                        "type" : "string"
+                      }
+                    }
+                  },
+                  "rarity" : {
+                    "type" : "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "id" : {
         "type" : "integer"
       },
+      "is_default" : {
+        "type" : "boolean"
+      },
+      "location_area_encounters" : {
+        "type" : "string"
+      },
+      "moves" : {
+        "type" : "array",
+        "items" : {
+          "type" : "object",
+          "additionalProperties" : true,
+          "properties" : {
+            "move" : {
+              "type" : "object",
+              "additionalProperties" : true,
+              "properties" : {
+                "name" : {
+                  "type" : "string"
+                },
+                "url" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "version_group_details" : {
+              "type" : "array",
+              "items" : {
+                "type" : "object",
+                "additionalProperties" : true,
+                "properties" : {
+                  "level_learned_at" : {
+                    "type" : "integer"
+                  },
+                  "move_learn_method" : {
+                    "type" : "object",
+                    "additionalProperties" : true,
+                    "properties" : {
+                      "name" : {
+                        "type" : "string"
+                      },
+                      "url" : {
+                        "type" : "string"
+                      }
+                    }
+                  },
+                  "version_group" : {
+                    "type" : "object",
+                    "additionalProperties" : true,
+                    "properties" : {
+                      "name" : {
+                        "type" : "string"
+                      },
+                      "url" : {
+                        "type" : "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "name" : {
         "type" : "string"
+      },
+      "order" : {
+        "type" : "integer"
+      },
+      "past_types" : {
+        "type" : "array",
+        "items" : {
+          "type" : "object",
+          "additionalProperties" : true,
+          "properties" : {
+            "generation" : {
+              "type" : "object",
+              "additionalProperties" : true,
+              "properties" : {
+                "name" : {
+                  "type" : "string"
+                },
+                "url" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "types" : {
+              "type" : "array",
+              "items" : {
+                "type" : "object",
+                "additionalProperties" : true,
+                "properties" : {
+                  "type" : {
+                    "type" : "object",
+                    "additionalProperties" : true,
+                    "properties" : {
+                      "name" : {
+                        "type" : "string"
+                      },
+                      "url" : {
+                        "type" : "string"
+                      }
+                    }
+                  },
+                  "slot" : {
+                    "type" : "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "species" : {
+        "type" : "object",
+        "additionalProperties" : true,
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
+          }
+        }
+      },
+      "sprites" : {
+        "type" : "object",
+        "additionalProperties" : true,
+        "properties" : {
+          "back_default" : {
+            "type" : "string"
+          },
+          "back_female" : {
+            "type" : "string"
+          },
+          "back_shiny" : {
+            "type" : "string"
+          },
+          "back_shiny_female" : {
+            "type" : "string"
+          },
+          "front_default" : {
+            "type" : "string"
+          },
+          "front_female" : {
+            "type" : "string"
+          },
+          "front_shiny" : {
+            "type" : "string"
+          },
+          "front_shiny_female" : {
+            "type" : "string"
+          }
+        }
+      },
+      "stats" : {
+        "type" : "array",
+        "items" : {
+          "type" : "object",
+          "additionalProperties" : true,
+          "properties" : {
+            "base_stat" : {
+              "type" : "integer"
+            },
+            "effort" : {
+              "type" : "integer"
+            },
+            "stat" : {
+              "type" : "object",
+              "additionalProperties" : true,
+              "properties" : {
+                "name" : {
+                  "type" : "string"
+                },
+                "url" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "types" : {
+        "type" : "array",
+        "items" : {
+          "type" : "object",
+          "additionalProperties" : true,
+          "properties" : {
+            "type" : {
+              "type" : "object",
+              "properties" : {
+                "name" : {
+                  "type" : "string"
+                },
+                "url" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "slot" : {
+              "type" : "integer"
+            }
+          }
+        }
+      },
+      "weight" : {
+        "type" : "integer"
       }
     }
   },

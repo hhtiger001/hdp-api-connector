@@ -1,0 +1,42 @@
+{
+  "name" : "user_groups",
+  "title" : "User Groups",
+  "inputSchema" : {
+    "type" : "object",
+    "additionalProperties" : false
+  },
+  "outputSchema" : {
+    "type" : "object",
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "additionalProperties" : true,
+    "properties" : {
+      "id" : {
+        "type" : "string",
+        "description" : "Unique identifier for the user group."
+      },
+      "name" : {
+        "type" : "string",
+        "description" : "Name of the user group."
+      },
+      "userIds" : {
+        "type" : "array",
+        "description" : "List of user IDs belonging to the user group.",
+        "items" : {
+          "type" : "string",
+          "description" : "User ID of a member in the group."
+        }
+      },
+      "workspaceId" : {
+        "type" : "string",
+        "description" : "Identifier for the workspace to which the user group belongs."
+      }
+    }
+  },
+  "request" : {
+    "path" : "/workspaces/{{ config['workspace_id'] }}/user-groups",
+    "method" : "GET"
+  },
+  "annotations" : {
+    "readOnlyHint" : true
+  }
+}

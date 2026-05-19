@@ -1,0 +1,50 @@
+{
+  "name" : "clients",
+  "title" : "Clients",
+  "inputSchema" : {
+    "type" : "object",
+    "additionalProperties" : false
+  },
+  "outputSchema" : {
+    "type" : "object",
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "additionalProperties" : true,
+    "properties" : {
+      "address" : {
+        "type" : "string",
+        "description" : "Client's physical address."
+      },
+      "archived" : {
+        "type" : "boolean",
+        "description" : "Indicates if the client is archived (true) or active (false)."
+      },
+      "email" : {
+        "type" : "string",
+        "description" : "Client's contact email address."
+      },
+      "id" : {
+        "type" : "string",
+        "description" : "Unique identifier for the client."
+      },
+      "name" : {
+        "type" : "string",
+        "description" : "Name of the client."
+      },
+      "note" : {
+        "type" : "string",
+        "description" : "Additional notes related to the client."
+      },
+      "workspaceId" : {
+        "type" : "string",
+        "description" : "Identifier for the workspace to which the client belongs."
+      }
+    }
+  },
+  "request" : {
+    "path" : "/workspaces/{{ config['workspace_id'] }}/clients",
+    "method" : "GET"
+  },
+  "annotations" : {
+    "readOnlyHint" : true
+  }
+}

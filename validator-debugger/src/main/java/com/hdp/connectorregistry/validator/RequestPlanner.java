@@ -29,8 +29,12 @@ public final class RequestPlanner {
     private final SignerRegistry signerRegistry = new SignerRegistry();
 
     public RequestPreview preview(LoadedConnector loadedConnector, String streamName, JsonNode config) {
+        return preview(loadedConnector, streamName, config, OBJECT_MAPPER.createObjectNode());
+    }
+
+    public RequestPreview preview(LoadedConnector loadedConnector, String streamName, JsonNode config, JsonNode input) {
         if (loadedConnector.tools() != null && !loadedConnector.tools().isEmpty()) {
-            return previewTool(loadedConnector, streamName, config);
+            return previewTool(loadedConnector, streamName, config, input);
         }
 
         StreamDefinition stream = findStream(loadedConnector, streamName);
@@ -109,17 +113,17 @@ public final class RequestPlanner {
         return String.join(System.lineSeparator(), sections) + System.lineSeparator();
     }
 
-    private RequestPreview previewTool(LoadedConnector loadedConnector, String toolName, JsonNode config) {
+    private RequestPreview previewTool(LoadedConnector loadedConnector, String toolName, JsonNode config, JsonNode input) {
         EndpointDefinition tool = findTool(loadedConnector, toolName);
         RequestDefinition request = tool.request();
         String method = requireText(request == null ? null : request.method(), "Missing request.method for tool: " + tool.name());
         String baseUrl = resolveToolBaseUrl(loadedConnector, request, config);
-        String path = templateResolver.resolve(defaultString(request.path(), ""), config);
+        String path = templateResolver.resolve(defaultString(request.path(), ""), config, input);
         String url = resolveUrl(baseUrl, path);
 
-        Map<String, String> headers = stringMap(request.headers(), config);
-        Map<String, String> queryParameters = stringMap(request.query(), config);
-        String body = bodyString(request.body(), config);
+        Map<String, String> headers = stringMap(request.headers(), config, input);
+        Map<String, String> queryParameters = stringMap(request.query(), config, input);
+        String body = bodyString(request.body(), config, input);
 
         JsonNode auth = request.auth();
         if (auth == null || auth.isMissingNode()) {
@@ -160,21 +164,22 @@ public final class RequestPlanner {
         return templateResolver.resolve(baseUrl, config);
     }
 
-    private Map<String, String> stringMap(JsonNode node, JsonNode config) {
+    private Map<String, String> stringMap(JsonNode node, JsonNode config, JsonNode input) {
         Map<String, String> values = new LinkedHashMap<>();
         if (node == null || !node.isObject()) {
             return values;
         }
-        node.fields().forEachRemaining(entry -> values.put(entry.getKey(), templateResolver.resolve(entry.getValue().asText(), config)));
+        node.fields().forEachRemaining(entry ->
+                values.put(entry.getKey(), templateResolver.resolve(entry.getValue().asText(), config, input)));
         return values;
     }
 
-    private String bodyString(JsonNode body, JsonNode config) {
+    private String bodyString(JsonNode body, JsonNode config, JsonNode input) {
         if (body == null || body.isNull() || body.isMissingNode()) {
             return null;
         }
         if (body.isTextual()) {
-            return templateResolver.resolve(body.asText(), config);
+            return templateResolver.resolve(body.asText(), config, input);
         }
         return body.toString();
     }

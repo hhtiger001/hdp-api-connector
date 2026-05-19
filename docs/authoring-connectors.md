@@ -153,14 +153,14 @@ connectors/<name>/
 ./gradlew :validator-debugger:run --args="verify-connector --connector connectors/<name>/connector.json --tool <tool-name> --config connectors/<name>/secrets/test-config.json"
 ```
 
-`generate-tests` 会按 `connector.json` 的 `tools[*].endpointRef` 生成 `tests/*.verify.json`，已有文件不会覆盖。测试场景只保存 tool、input、records 和 expect；真实测试值通过 `verify-connector --config` 动态注入。
+`generate-tests` 会按 `connector.json` 的 `tools[*].endpointRef` 生成 `tests/*.verify.json`，并生成 `tests/config.example.json`。已有文件不会覆盖。测试场景只保存 tool、input、expect 和真实请求回填的 `response`；真实测试值通过 `verify-connector --config` 动态注入。
 
-动态配置文件示例：
+`tests/config.example.json` 示例：
 
 ```json
 {
   "config": {
-    "api_key": "test-api-key"
+    "api_key": "TODO"
   },
   "input": {
     "users": {}
@@ -168,32 +168,33 @@ connectors/<name>/
 }
 ```
 
-`verify-connector` 会按 `tests/*.verify.json` 里的 `records` 配置提取数据并校验数量，完整测试配置仍放在本地 `secrets` 目录。
+开发者本地验证时，把 `tests/config.example.json` 复制到 `secrets/test-config.json`，再填入真实测试值。完整测试配置仍放在本地 `secrets` 目录。
 
-`records.example` 是真实请求成功后写回的返回数据示例，用来让开发者和审核者看清这个接口实际返回的一条记录结构；它不进入命令输出，也不作为断言条件。`generate-tests` 不会编造这个字段，只有 `verify-connector` 从真实响应里取到记录后才会写入。
+`response` 是真实请求成功后写回的返回数据示例，用来让开发者和审核者看清这个接口实际返回的一条记录结构；它不进入命令输出，也不作为断言条件。`generate-tests` 不会编造这个字段，只有 `verify-connector` 从真实响应里取到示例后才会写入。
 
-如果希望断言至少读到几条记录，可以在 `tests/*.verify.json` 里写：
+`tests/*.verify.json` 初始形态：
 
 ```json
 {
-  "records": {
-    "path": ["records"],
-    "min": 1
+  "name": "users",
+  "tool": "users",
+  "input": {},
+  "expect": {
+    "method": "GET",
+    "urlContains": "/users",
+    "statusCode": 200,
+    "responseJson": true
   }
 }
 ```
 
-验证成功后，工具会把真实响应中的第一条记录补成：
+验证成功后，工具会把真实响应中的示例补成：
 
 ```json
 {
-  "records": {
-    "path": ["records"],
-    "min": 1,
-    "example": {
-      "id": "actual-id",
-      "name": "Actual Name"
-    }
+  "response": {
+    "id": "actual-id",
+    "name": "Actual Name"
   }
 }
 ```

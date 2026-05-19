@@ -1,0 +1,38 @@
+{
+  "name" : "tags",
+  "title" : "Tags",
+  "inputSchema" : {
+    "type" : "object",
+    "additionalProperties" : false
+  },
+  "outputSchema" : {
+    "type" : "object",
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "additionalProperties" : true,
+    "properties" : {
+      "archived" : {
+        "type" : "boolean",
+        "description" : "Indicates if the tag is archived or active."
+      },
+      "id" : {
+        "type" : "string",
+        "description" : "Unique identifier for the tag."
+      },
+      "name" : {
+        "type" : "string",
+        "description" : "Name of the tag."
+      },
+      "workspaceId" : {
+        "type" : "string",
+        "description" : "Identifier of the workspace to which the tag belongs."
+      }
+    }
+  },
+  "request" : {
+    "path" : "/workspaces/{{ config['workspace_id'] }}/tags",
+    "method" : "GET"
+  },
+  "annotations" : {
+    "readOnlyHint" : true
+  }
+}

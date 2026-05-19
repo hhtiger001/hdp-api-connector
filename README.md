@@ -113,7 +113,9 @@ converter -> connector-model <- validator-debugger
 ./gradlew :validator-debugger:run --args="verify-connector --connector connectors/<name>/connector.json --tool <tool-name> --config path/to/test-config.json"
 ```
 
-`verify-connector` 固定执行加载、配置校验、tool 列表确认、请求预览、真实请求和响应校验。真实请求成功后，工具会把第一条返回记录写回 `tests/*.verify.json` 的 `records.example`，命令输出只打印验证摘要。真实请求复用 `sync-runtime-example` 的 `SyncTaskRuntime` 路径，避免测试验证和同步执行分叉。测试配置建议放在 `connectors/<name>/secrets/*.json`，该目录已被 `.gitignore` 忽略。
+`generate-tests` 会生成 `tests/*.verify.json` 和 `tests/config.example.json`。开发者把 `config.example.json` 复制到 `secrets/test-config.json` 并填入真实测试值后，再运行 `verify-connector`。
+
+`verify-connector` 固定执行加载、配置校验、tool 列表确认、请求预览、真实请求和响应校验。真实请求成功后，工具会把第一条返回示例写回 `tests/*.verify.json` 的 `response`，命令输出只打印验证摘要。真实请求复用 `sync-runtime-example` 的 `SyncTaskRuntime` 路径，避免测试验证和同步执行分叉。测试配置建议放在 `connectors/<name>/secrets/*.json`，该目录已被 `.gitignore` 忽略。
 
 ## 文档导航
 

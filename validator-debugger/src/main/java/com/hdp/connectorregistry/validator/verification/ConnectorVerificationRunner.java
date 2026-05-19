@@ -87,16 +87,16 @@ public final class ConnectorVerificationRunner {
         }
         passedSteps.add("listComponents");
 
-        RequestPreview preview = requestPlanner.preview(loadedConnector, scenario.tool(), config);
+        JsonNode input = inputForScenario(scenario, injection);
+        RequestPreview preview = requestPlanner.preview(loadedConnector, scenario.tool(), config, input);
         verifyPreview(scenario, preview);
         passedSteps.add("previewRequest");
 
-        JsonNode input = inputForScenario(scenario, injection);
         Map<String, Object> inputMap = objectMapper.convertValue(input, new TypeReference<>() {});
         SyncTaskRuntime.TestRequestResult response =
                 syncTaskRuntime.testRequest(connectorFile, endpoint.name(), connectionConfig, inputMap);
-        ResponseRecords records = verifyResponse(scenario, response);
-        updateResponseExample(scenarioFile, records, endpoint.outputSchema());
+        JsonNode responseExample = verifyResponse(scenario, response);
+        updateResponseExample(scenarioFile, responseExample, endpoint.outputSchema());
         passedSteps.add("testRequest");
 
         return new VerificationResult(
@@ -123,84 +123,36 @@ public final class ConnectorVerificationRunner {
         }
     }
 
-    private ResponseRecords verifyResponse(VerificationScenario scenario, SyncTaskRuntime.TestRequestResult response) {
+    private JsonNode verifyResponse(VerificationScenario scenario, SyncTaskRuntime.TestRequestResult response) {
         VerificationExpect expect = scenario.expect();
-        JsonNode responseJson = null;
         if (expect == null) {
-            return responseRecords(response.responseBody(), false);
+            return null;
         }
         if (expect.statusCode() != null && expect.statusCode() != response.statusCode()) {
             throw new VerificationFailure("Expected status " + expect.statusCode() + " but was "
                     + response.statusCode() + " for " + scenario.name());
         }
-        if (Boolean.TRUE.equals(expect.responseJson()) || scenario.records() != null) {
+        if (Boolean.TRUE.equals(expect.responseJson())) {
             try {
-                responseJson = objectMapper.readTree(response.responseBody());
+                return responseExample(objectMapper.readTree(response.responseBody()));
             } catch (IOException exception) {
                 throw new VerificationFailure("Expected JSON response for " + scenario.name(), exception);
             }
         }
-        ResponseRecords records = responseRecords(
-                response.responseBody(),
-                responseJson,
-                Boolean.TRUE.equals(expect.responseJson()),
-                scenario.records());
-        Integer min = scenario.records() == null ? null : scenario.records().min();
-        if (min != null && records.count() < min) {
-            throw new VerificationFailure("Expected at least " + min + " records but found "
-                    + records.count() + " for " + scenario.name());
-        }
-        return records;
+        return null;
     }
 
-    private ResponseRecords responseRecords(String responseBody, boolean parseJson) {
-        if (!parseJson) {
-            return new ResponseRecords(0, null);
-        }
-        try {
-            return responseRecords(responseBody, objectMapper.readTree(responseBody), true, null);
-        } catch (IOException exception) {
-            return new ResponseRecords(0, null);
-        }
-    }
-
-    private ResponseRecords responseRecords(
-            String responseBody,
-            JsonNode responseJson,
-            boolean jsonExpected,
-            VerificationRecords recordsConfig) {
-        if (responseJson == null || responseJson.isMissingNode() || responseJson.isNull()) {
-            return new ResponseRecords(0, null);
-        }
-        JsonNode records = recordsNode(responseJson, recordsConfig);
-        if (records.isArray()) {
-            JsonNode example = records.isEmpty() ? null : records.get(0);
-            return new ResponseRecords(records.size(), example);
-        }
-        if (records.isObject()) {
-            return new ResponseRecords(1, records);
-        }
-        return new ResponseRecords(0, null);
-    }
-
-    private void updateResponseExample(ScenarioFile scenarioFile, ResponseRecords records, JsonNode outputSchema) {
-        VerificationScenario scenario = scenarioFile.scenario();
-        if (scenario.records() == null || records.example() == null) {
-            return;
-        }
+    private void updateResponseExample(ScenarioFile scenarioFile, JsonNode example, JsonNode outputSchema) {
         JsonNode root = readJson(scenarioFile.path());
         if (!root.isObject()) {
             throw new VerificationFailure("Verification scenario must be an object: " + scenarioFile.path());
         }
         ObjectNode rootObject = (ObjectNode) root;
-        JsonNode recordsNode = rootObject.path("records");
-        ObjectNode recordsObject;
-        if (recordsNode.isObject()) {
-            recordsObject = (ObjectNode) recordsNode;
+        if (example == null || example.isMissingNode() || example.isNull()) {
+            rootObject.remove("response");
         } else {
-            recordsObject = rootObject.putObject("records");
+            rootObject.set("response", exampleForSchema(example, outputSchema));
         }
-        recordsObject.set("example", exampleForSchema(records.example(), outputSchema));
         try {
             objectMapper.writerWithDefaultPrettyPrinter().writeValue(scenarioFile.path().toFile(), rootObject);
         } catch (IOException exception) {
@@ -231,22 +183,18 @@ public final class ConnectorVerificationRunner {
         return example;
     }
 
-    private JsonNode recordsNode(JsonNode responseJson, VerificationRecords recordsConfig) {
-        if (recordsConfig != null && recordsConfig.path() != null && !recordsConfig.path().isEmpty()) {
-            JsonNode cursor = responseJson;
-            for (String pathPart : recordsConfig.path()) {
-                cursor = cursor.path(pathPart);
-            }
-            return cursor;
+    private JsonNode responseExample(JsonNode responseJson) {
+        if (responseJson == null || responseJson.isMissingNode() || responseJson.isNull()) {
+            return null;
         }
         if (responseJson.isArray()) {
-            return responseJson;
+            return responseJson.isEmpty() ? null : responseJson.get(0);
         }
         if (responseJson.isObject()) {
             for (String fieldName : List.of("records", "data", "items")) {
                 JsonNode candidate = responseJson.path(fieldName);
                 if (candidate.isArray()) {
-                    return candidate;
+                    return candidate.isEmpty() ? null : candidate.get(0);
                 }
             }
             return responseJson;
@@ -323,5 +271,4 @@ public final class ConnectorVerificationRunner {
 
     private record ScenarioFile(Path path, VerificationScenario scenario) {}
 
-    private record ResponseRecords(int count, JsonNode example) {}
 }

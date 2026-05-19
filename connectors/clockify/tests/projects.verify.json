@@ -2,14 +2,42 @@
   "name": "projects",
   "tool": "projects",
   "input": {},
-  "records": {
-    "path": [],
-    "min": 1
-  },
   "expect": {
     "method": "GET",
-    "urlContains": "/workspaces/",
+    "urlContains": "/projects",
     "statusCode": 200,
     "responseJson": true
+  },
+  "response": {
+    "archived": false,
+    "billable": false,
+    "budgetEstimate": null,
+    "clientId": "",
+    "clientName": "",
+    "color": "#795548",
+    "costRate": null,
+    "duration": "PT0S",
+    "estimate": {
+      "type": "AUTO",
+      "estimate": "PT0S"
+    },
+    "hourlyRate": {
+      "amount": 0,
+      "currency": "USD"
+    },
+    "id": "6a0c39e33c924007361a753a",
+    "memberships": [],
+    "name": "[SAMPLE] Internal Project",
+    "note": "This project is perfect for tracking internal company tasks that aren’t charged to any client. There is no estimate or budget set, nor a billable rate.",
+    "public": true,
+    "template": false,
+    "timeEstimate": {
+      "type": "AUTO",
+      "active": false,
+      "estimate": "PT0S",
+      "includeNonBillable": true,
+      "resetOption": null
+    },
+    "workspaceId": "6a0c39e33c924007361a74ed"
   }
 }

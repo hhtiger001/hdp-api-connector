@@ -1,10 +1,10 @@
 {
-  "name": "users",
-  "tool": "users",
+  "name": "tags",
+  "tool": "tags",
   "input": {},
   "expect": {
     "method": "GET",
-    "urlContains": "/users",
+    "urlContains": "/tags",
     "statusCode": 200,
     "responseJson": true
   }

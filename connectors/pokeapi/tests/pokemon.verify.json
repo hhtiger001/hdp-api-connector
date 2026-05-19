@@ -1,19 +1,15 @@
 {
-  "name" : "pokemon",
-  "tool" : "pokemon",
-  "input" : { },
-  "records" : {
-    "path" : [ ],
-    "min" : 1,
-    "example" : {
-      "id" : 1,
-      "name" : "bulbasaur"
-    }
+  "name": "pokemon",
+  "tool": "pokemon",
+  "input": {},
+  "response": {
+    "id": 1,
+    "name": "bulbasaur"
   },
-  "expect" : {
-    "method" : "GET",
-    "urlContains" : "/bulbasaur",
-    "statusCode" : 200,
-    "responseJson" : true
+  "expect": {
+    "method": "GET",
+    "urlContains": "/bulbasaur",
+    "statusCode": 200,
+    "responseJson": true
   }
 }

@@ -10,6 +10,10 @@ public final class TemplateResolver {
     private static final Pattern TEMPLATE_PATTERN = Pattern.compile("\\{\\{\\s*(.+?)\\s*\\}\\}");
 
     public String resolve(String value, JsonNode config) {
+        return resolve(value, config, null);
+    }
+
+    public String resolve(String value, JsonNode config, JsonNode input) {
         if (value == null) {
             return null;
         }
@@ -17,28 +21,36 @@ public final class TemplateResolver {
         Matcher matcher = TEMPLATE_PATTERN.matcher(value);
         StringBuffer buffer = new StringBuffer();
         while (matcher.find()) {
-            String replacement = resolveExpression(matcher.group(1), config);
+            String replacement = resolveExpression(matcher.group(1), config, input);
             matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(buffer);
         return buffer.toString();
     }
 
-    private String resolveExpression(String expression, JsonNode config) {
+    private String resolveExpression(String expression, JsonNode config, JsonNode input) {
         if (expression == null) {
             return "";
         }
 
         String trimmed = expression.trim();
-        if (!trimmed.startsWith("config")) {
+        JsonNode root;
+        String pathExpression;
+        if (trimmed.startsWith("config")) {
+            root = config;
+            pathExpression = trimmed.substring("config".length());
+        } else if (trimmed.startsWith("input")) {
+            root = input;
+            pathExpression = trimmed.substring("input".length());
+        } else {
             return "";
         }
 
-        if (config == null || config.isMissingNode() || config.isNull()) {
+        if (root == null || root.isMissingNode() || root.isNull()) {
             return "";
         }
 
-        JsonNode resolved = resolveConfigPath(trimmed.substring("config".length()), config);
+        JsonNode resolved = resolvePath(pathExpression, root);
         if (resolved == null || resolved.isMissingNode() || resolved.isNull()) {
             return "";
         }
@@ -48,7 +60,7 @@ public final class TemplateResolver {
         return resolved.toString();
     }
 
-    private JsonNode resolveConfigPath(String pathExpression, JsonNode config) {
+    private JsonNode resolvePath(String pathExpression, JsonNode root) {
         List<String> segments = new ArrayList<>();
         int index = 0;
         while (index < pathExpression.length()) {
@@ -88,7 +100,7 @@ public final class TemplateResolver {
             }
         }
 
-        JsonNode current = config;
+        JsonNode current = root;
         for (String segment : segments) {
             current = current.path(segment);
         }

@@ -30,6 +30,11 @@ public final class ConnectorTestGenerator {
         }
 
         List<Path> generated = new ArrayList<>();
+        Path configPath = testsDirectory.resolve("config.example.json");
+        if (!Files.exists(configPath)) {
+            writeConfig(loadedConnector.connector().spec().connectionSpec(), loadedConnector.tools(), configPath);
+            generated.add(configPath);
+        }
         for (EndpointDefinition endpoint : loadedConnector.tools()) {
             Path scenarioPath = testsDirectory.resolve(fileName(endpoint.name()));
             if (Files.exists(scenarioPath)) {
@@ -46,9 +51,6 @@ public final class ConnectorTestGenerator {
         scenario.put("name", endpoint.name());
         scenario.put("tool", endpoint.name());
         scenario.set("input", inputSkeleton(endpoint.inputSchema()));
-        ObjectNode records = scenario.putObject("records");
-        records.putArray("path");
-        records.put("min", 1);
 
         ObjectNode expect = scenario.putObject("expect");
         expect.put("method", endpoint.request().method());
@@ -60,6 +62,20 @@ public final class ConnectorTestGenerator {
             objectMapper.writerWithDefaultPrettyPrinter().writeValue(scenarioPath.toFile(), scenario);
         } catch (IOException exception) {
             throw new VerificationFailure("Unable to write verification scenario: " + scenarioPath, exception);
+        }
+    }
+
+    private void writeConfig(JsonNode connectionSpec, List<EndpointDefinition> endpoints, Path configPath) {
+        ObjectNode config = objectMapper.createObjectNode();
+        config.set("config", inputSkeleton(connectionSpec));
+        ObjectNode input = config.putObject("input");
+        for (EndpointDefinition endpoint : endpoints) {
+            input.set(endpoint.name(), inputSkeleton(endpoint.inputSchema()));
+        }
+        try {
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(configPath.toFile(), config);
+        } catch (IOException exception) {
+            throw new VerificationFailure("Unable to write verification config template: " + configPath, exception);
         }
     }
 
@@ -111,14 +127,30 @@ public final class ConnectorTestGenerator {
         if (path == null || path.isBlank()) {
             return "/";
         }
-        String withoutTemplates = TEMPLATE.matcher(path).replaceAll("");
-        while (withoutTemplates.contains("//")) {
-            withoutTemplates = withoutTemplates.replace("//", "/");
+        if (!TEMPLATE.matcher(path).find()) {
+            return path;
         }
-        if (withoutTemplates.isBlank()) {
-            return "/";
+
+        List<String> trailingStaticSegments = new ArrayList<>();
+        List<String> staticSegments = new ArrayList<>();
+        for (String segment : path.split("/")) {
+            if (segment.isBlank()) {
+                continue;
+            }
+            if (TEMPLATE.matcher(segment).find()) {
+                trailingStaticSegments.clear();
+                continue;
+            }
+            staticSegments.add(segment);
+            trailingStaticSegments.add(segment);
         }
-        return withoutTemplates;
+        if (!trailingStaticSegments.isEmpty()) {
+            return "/" + String.join("/", trailingStaticSegments);
+        }
+        if (!staticSegments.isEmpty()) {
+            return "/" + staticSegments.get(staticSegments.size() - 1);
+        }
+        return "/";
     }
 
     private String fileName(String toolName) {
