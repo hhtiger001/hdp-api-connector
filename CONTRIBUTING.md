@@ -2,7 +2,7 @@
 
 这个仓库欢迎围绕 `HDP API connector` 定义资产的贡献。
 
-它是一个 connector-definition registry，不是 runtime。
+它是一个 connector-definition registry，不是正式同步 runtime。本地验证命令可以发出测试 HTTP 请求，但分页、落库、调度、状态和正式同步执行不在本仓库实现。
 
 ## What You Can Contribute
 
@@ -11,11 +11,11 @@
 - 新增一个可维护的 connector 定义
 - 修正已有 connector 的 schema、路径引用或 signer 配置
 - 补充或修正文档
-- 改进静态调试体验，例如 `validate`、`list-components`、`preview-request` 的文档或示例
+- 改进调试体验，例如 `validate`、`list-components`、`preview-request`、`generate-tests`、`verify-connector` 的文档或示例
 
 不在当前仓库范围内的内容包括：
 
-- 真实 HTTP 执行
+- 正式同步任务执行
 - 调度和任务编排
 - 增量状态、checkpoint、重试策略
 - 与运行时强绑定的平台能力
@@ -54,10 +54,13 @@ git diff --check
 如果你改了 connector 示例、作者流程或请求相关定义，建议再手工运行：
 
 ```bash
-./gradlew :validator-debugger:run --args="list-components --connector connectors/demo-users/connector.yaml"
-./gradlew :validator-debugger:run --args="validate --connector connectors/demo-users/connector.yaml --config validator-debugger/src/test/resources/fixtures/config/valid-config.json"
-./gradlew :validator-debugger:run --args="preview-request --connector connectors/demo-users/connector.yaml --stream users --config validator-debugger/src/test/resources/fixtures/config/preview-config.json"
+./gradlew :validator-debugger:run --args="list-components --connector connectors/demo-users/connector.json"
+./gradlew :validator-debugger:run --args="validate --connector connectors/demo-users/connector.json --config validator-debugger/src/test/resources/fixtures/config/valid-config.json"
+./gradlew :validator-debugger:run --args="preview-request --connector connectors/demo-users/connector.json --tool users --config validator-debugger/src/test/resources/fixtures/config/preview-config.json"
+./gradlew :validator-debugger:run --args="generate-tests --connector connectors/demo-users/connector.json"
 ```
+
+如果你的 connector 有可用测试账号或公开 API，建议提供本地 `connectors/<name>/secrets/test-config.json` 并运行 `verify-connector`。`secrets` 目录不应提交；验证成功后写回的 `tests/*.verify.json` 中 `records.example` 必须来自真实响应，不能手写假数据。
 
 ## Documentation Map
 
@@ -65,7 +68,8 @@ git diff --check
 - [docs/airbyte-conversion.md](docs/airbyte-conversion.md)：Airbyte connector 转换流程
 - [docs/architecture.md](docs/architecture.md)：维护者边界和扩展入口
 - [docs/authoring-connectors.md](docs/authoring-connectors.md)：如何产出合格 connector
-- [docs/format/connector-schema.md](docs/format/connector-schema.md)：`connector.yaml` 逐字段说明
+- [docs/format/connector-schema.md](docs/format/connector-schema.md)：`connector.json + endpoints/*.json` 逐字段说明
+- [docs/sync-task-runtime-config.md](docs/sync-task-runtime-config.md)：同步任务服务参考方案
 
 ## Scope Boundaries
 

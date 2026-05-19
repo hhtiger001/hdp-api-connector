@@ -1,0 +1,42 @@
+version: "0.1.0"
+spec:
+  connection_specification:
+    type: object
+    required:
+      - shop
+      - api_key
+      - api_secret
+    properties:
+      shop:
+        type: string
+      api_key:
+        type: string
+      api_secret:
+        type: string
+        airbyte_secret: true
+definitions:
+  base_requester:
+    type: HttpRequester
+    url_base: "https://{{ config['shop'] }}/wp-json/wc/v3"
+    authenticator:
+      type: BasicHttpAuthenticator
+      username: "{{ config['api_key'] }}"
+      password: "{{ config['api_secret'] }}"
+streams:
+  - type: DeclarativeStream
+    name: customers
+    retriever:
+      type: SimpleRetriever
+      requester:
+        $ref: "#/definitions/base_requester"
+        path: /customers
+        http_method: GET
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        properties:
+          id:
+            type: integer
+          name:
+            type: string

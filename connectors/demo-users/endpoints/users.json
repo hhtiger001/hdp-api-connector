@@ -1,0 +1,30 @@
+{
+  "name": "users",
+  "title": "List users",
+  "description": "List demo users.",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "User ID."
+      },
+      "name": {
+        "type": "string",
+        "description": "User name."
+      }
+    }
+  },
+  "request": {
+    "method": "GET",
+    "path": "/users"
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}

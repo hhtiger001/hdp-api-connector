@@ -1,16 +1,16 @@
 package com.hdp.connectorregistry.converter;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hdp.connectorregistry.model.ApiConnector;
 import com.hdp.connectorregistry.model.ConnectorSpec;
-import com.hdp.connectorregistry.model.Defaults;
-import com.hdp.connectorregistry.model.Definitions;
+import com.hdp.connectorregistry.model.EndpointDefinition;
+import com.hdp.connectorregistry.model.EndpointDiscovery;
 import com.hdp.connectorregistry.model.Metadata;
 import com.hdp.connectorregistry.model.RequestDefinition;
-import com.hdp.connectorregistry.model.SchemaDefinition;
-import com.hdp.connectorregistry.model.StreamDefinition;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,6 +28,8 @@ public final class AirbyteManifestConverter {
             "API_BUDGET_REQUIRES_MANUAL_REVIEW";
     private static final String STREAM_SCHEMA_MISSING = "STREAM_SCHEMA_MISSING";
 
+    private static final JsonNodeFactory JSON = JsonNodeFactory.instance;
+
     private final AirbyteManifestLoader loader = new AirbyteManifestLoader();
 
     public ConversionResult convert(Path manifestPath) {
@@ -35,10 +37,9 @@ public final class AirbyteManifestConverter {
         List<ConversionIssue> issues = new ArrayList<>();
         detectCustomComponent(manifest.path("definitions"), "/definitions", issues);
 
-        BudgetMapping budgetMapping = mapBudget(manifest.path("api_budget"), issues);
+        mapBudget(manifest.path("api_budget"), issues);
         DefinitionBuckets definitionBuckets = mapDefinitions(manifest.path("definitions"));
-        List<StreamDefinition> streams = new ArrayList<>();
-        Map<String, JsonNode> schemasByPath = new LinkedHashMap<>();
+        Map<String, EndpointDefinition> endpointsByPath = new LinkedHashMap<>();
 
         JsonNode streamsNode = manifest.path("streams");
         if (!streamsNode.isArray() || streamsNode.isEmpty()) {
@@ -51,48 +52,47 @@ public final class AirbyteManifestConverter {
         } else {
             for (int index = 0; index < streamsNode.size(); index++) {
                 JsonNode streamNode = resolveLocalRef(manifest, streamsNode.get(index));
-                MappedStream mappedStream =
-                        mapStream(manifest, streamNode, index, definitionBuckets.requesters(), budgetMapping.qps(), issues);
-                streams.add(mappedStream.stream());
-
-                if (mappedStream.schemaJson() != null && mappedStream.stream().schema() != null) {
-                    schemasByPath.put(mappedStream.stream().schema().ref(), mappedStream.schemaJson());
-                }
+                MappedEndpoint mappedEndpoint =
+                        mapStream(manifest, streamNode, index, definitionBuckets.requesters(), issues);
+                endpointsByPath.put(mappedEndpoint.path(), mappedEndpoint.endpoint());
             }
         }
 
         ConversionStatus status = deriveStatus(issues);
-        String originVersion = textValue(manifest.path("version"));
         String metadataName = deriveMetadataName(manifestPath);
-        Definitions definitions = new Definitions(
-                Collections.unmodifiableMap(new LinkedHashMap<>(definitionBuckets.requesters())),
-                Collections.unmodifiableMap(new LinkedHashMap<>(definitionBuckets.authenticators())));
         ApiConnector connector = new ApiConnector(
-                "hdp.connector/v1alpha1",
-                "ApiConnector",
+                "hdp.connector/v1alpha2",
+                null,
                 new Metadata(
                         metadataName,
-                        metadataName,
-                        new Metadata.SourceMetadata(
-                                "airbyte-manifest",
-                                originVersion,
-                                manifestPath.toString())),
+                        metadataName),
                 new ConnectorSpec(
-                        missingAsNull(manifest.path("spec").path("connection_specification")),
-                        new Defaults(budgetMapping.qps(), deriveBaseUrl(manifest, definitionBuckets.requesters())),
-                        definitions,
-                        Map.of(),
-                        List.copyOf(streams)));
+                        normalizeConnectionSpec(missingAsNull(manifest.path("spec").path("connection_specification"))),
+                        null,
+                        null,
+                        null,
+                        null,
+                        new RequestDefinition(
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                deriveBaseUrl(manifest, definitionBuckets.requesters()),
+                                deriveAuth(manifest, definitionBuckets.requesters()),
+                                null,
+                                null,
+                                null),
+                        new EndpointDiscovery("endpoints/*.json")));
 
         ConversionReport report = new ConversionReport(
                 status,
                 List.copyOf(issues),
-                originVersion,
                 missingAsNull(manifest.path("api_budget")));
 
         return new ConversionResult(
                 connector,
-                Collections.unmodifiableMap(new LinkedHashMap<>(schemasByPath)),
+                Collections.unmodifiableMap(new LinkedHashMap<>(endpointsByPath)),
                 report);
     }
 
@@ -119,18 +119,16 @@ public final class AirbyteManifestConverter {
         return new DefinitionBuckets(requesters, authenticators);
     }
 
-    private MappedStream mapStream(
+    private MappedEndpoint mapStream(
             JsonNode manifest,
             JsonNode streamNode,
             int index,
             Map<String, JsonNode> requesters,
-            String defaultQps,
             List<ConversionIssue> issues) {
         String streamName = streamNode.path("name").asText("stream-" + (index + 1));
         detectCustomComponent(streamNode, "/streams/" + index, issues);
 
         JsonNode schema = extractSchema(manifest, streamNode);
-        SchemaDefinition schemaDefinition = null;
         if (schema.isMissingNode() || schema.isNull()) {
             issues.add(new ConversionIssue(
                     "WARNING",
@@ -138,23 +136,27 @@ public final class AirbyteManifestConverter {
                     "Stream schema could not be extracted and requires manual review",
                     "/streams/" + index + "/schema_loader",
                     null));
-        } else {
-            schemaDefinition = new SchemaDefinition(schemaPathFor(streamName, index), null);
         }
 
-        String qps = textOrDefault(streamNode.path("qps"), defaultQps);
-        String requesterRef = requesterRef(streamNode, streamName, requesters);
-        StreamDefinition stream = new StreamDefinition(
+        EndpointDefinition endpoint = new EndpointDefinition(
                 streamName,
-                qps,
+                titleize(streamName),
+                null,
+                emptyInputSchema(),
+                schema.isMissingNode() || schema.isNull() ? NullNode.getInstance() : schema.deepCopy(),
                 new RequestDefinition(
-                        requesterRef,
+                        null,
                         requestPath(streamNode, streamName),
                         requestMethod(streamNode),
                         null,
-                        qps),
-                schemaDefinition);
-        return new MappedStream(stream, schemaDefinition == null ? null : schema.deepCopy());
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null),
+                annotationsForMethod(requestMethod(streamNode)));
+        return new MappedEndpoint(endpointPathFor(streamName, index), endpoint);
     }
 
     private BudgetMapping mapBudget(JsonNode apiBudgetNode, List<ConversionIssue> issues) {
@@ -218,6 +220,7 @@ public final class AirbyteManifestConverter {
         if (node.isTextual()) {
             String value = node.asText();
             return "CustomAuthenticator".equals(value)
+                    || "JwtAuthenticator".equals(value)
                     || "CustomRequester".equals(value)
                     || "CustomRetriever".equals(value);
         }
@@ -277,20 +280,59 @@ public final class AirbyteManifestConverter {
     private JsonNode extractSchema(JsonNode manifest, JsonNode streamNode) {
         JsonNode schema = streamNode.path("schema_loader").path("schema");
         if (!schema.isMissingNode() && !schema.isNull()) {
-            return resolveLocalRef(manifest, schema);
+            return normalizeOutputSchema(resolveLocalRef(manifest, schema));
         }
 
         schema = streamNode.path("json_schema");
         if (!schema.isMissingNode() && !schema.isNull()) {
-            return resolveLocalRef(manifest, schema);
+            return normalizeOutputSchema(resolveLocalRef(manifest, schema));
         }
 
         schema = streamNode.path("schema");
         if (!schema.isMissingNode() && !schema.isNull()) {
-            return resolveLocalRef(manifest, schema);
+            return normalizeOutputSchema(resolveLocalRef(manifest, schema));
         }
 
         return MissingNodeHolder.INSTANCE;
+    }
+
+    private JsonNode normalizeOutputSchema(JsonNode schema) {
+        JsonNode normalized = schema.deepCopy();
+        normalizeOutputSchemaNode(normalized);
+        return normalized;
+    }
+
+    private void normalizeOutputSchemaNode(JsonNode node) {
+        if (node == null || node.isNull() || node.isMissingNode()) {
+            return;
+        }
+        if (node.isObject()) {
+            ObjectNode object = (ObjectNode) node;
+            JsonNode type = object.path("type");
+            if (type.isArray()) {
+                ArrayNode nonNullTypes = JSON.arrayNode();
+                for (JsonNode typeItem : type) {
+                    if (!"null".equals(typeItem.asText())) {
+                        nonNullTypes.add(typeItem);
+                    }
+                }
+                if (nonNullTypes.size() == 1) {
+                    object.set("type", nonNullTypes.get(0));
+                } else if (nonNullTypes.size() > 1) {
+                    object.set("type", nonNullTypes);
+                }
+            }
+            Iterator<JsonNode> children = object.elements();
+            while (children.hasNext()) {
+                normalizeOutputSchemaNode(children.next());
+            }
+            return;
+        }
+        if (node.isArray()) {
+            for (JsonNode child : node) {
+                normalizeOutputSchemaNode(child);
+            }
+        }
     }
 
     private JsonNode resolveLocalRef(JsonNode root, JsonNode node) {
@@ -346,6 +388,13 @@ public final class AirbyteManifestConverter {
     }
 
     private String deriveBaseUrl(JsonNode manifest, Map<String, JsonNode> requesters) {
+        JsonNode firstStream = resolveLocalRef(manifest, manifest.path("streams").path(0));
+        JsonNode firstStreamRequester = firstStream.path("retriever").path("requester");
+        String firstStreamBaseUrl = textValue(firstPresent(firstStreamRequester, "urlBase", "url_base"));
+        if (firstStreamBaseUrl != null) {
+            return firstStreamBaseUrl;
+        }
+
         JsonNode definitionsNode = manifest.path("definitions");
         if (definitionsNode.isObject()) {
             Iterator<Map.Entry<String, JsonNode>> fields = definitionsNode.fields();
@@ -365,9 +414,138 @@ public final class AirbyteManifestConverter {
             }
         }
 
-        JsonNode firstStream = resolveLocalRef(manifest, manifest.path("streams").path(0));
-        JsonNode firstStreamRequester = firstStream.path("retriever").path("requester");
         return textValue(firstPresent(firstStreamRequester, "urlBase", "url_base"));
+    }
+
+    private JsonNode deriveAuth(JsonNode manifest, Map<String, JsonNode> requesters) {
+        for (JsonNode requester : requesters.values()) {
+            JsonNode auth = mapAuthenticator(manifest, requester.path("authenticator"));
+            if (auth != null) {
+                return auth;
+            }
+        }
+
+        JsonNode streamsNode = manifest.path("streams");
+        if (streamsNode.isArray()) {
+            for (JsonNode streamRef : streamsNode) {
+                JsonNode stream = resolveLocalRef(manifest, streamRef);
+                JsonNode auth = mapAuthenticator(manifest, stream.path("retriever").path("requester").path("authenticator"));
+                if (auth != null) {
+                    return auth;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private JsonNode mapAuthenticator(JsonNode manifest, JsonNode authenticator) {
+        authenticator = resolveLocalRef(manifest, authenticator);
+        if (!authenticator.isObject()) {
+            return null;
+        }
+        String type = authenticator.path("type").asText("");
+        return switch (type) {
+            case "ApiKeyAuthenticator" -> mapApiKeyAuthenticator(authenticator);
+            case "BasicHttpAuthenticator" -> mapBasicAuthenticator(authenticator);
+            case "BearerAuthenticator" -> mapBearerAuthenticator(authenticator);
+            case "CustomAuthenticator", "JwtAuthenticator" -> mapExtensionAuthenticator(authenticator, type);
+            default -> null;
+        };
+    }
+
+    private JsonNode mapApiKeyAuthenticator(JsonNode authenticator) {
+        ObjectNode auth = JSON.objectNode();
+        auth.put("type", "apiKey");
+        JsonNode injectInto = authenticator.path("inject_into");
+        String location = textValue(injectInto.path("inject_into"));
+        auth.put("in", location == null ? "header" : location);
+
+        String name = textValue(injectInto.path("field_name"));
+        if (name == null) {
+            name = textValue(authenticator.path("header"));
+        }
+        if (name == null) {
+            name = textValue(authenticator.path("field_name"));
+        }
+        if (name != null) {
+            auth.put("name", name);
+        }
+
+        String value = textValue(authenticator.path("api_token"));
+        if (value == null) {
+            value = textValue(authenticator.path("value"));
+        }
+        if (value != null) {
+            auth.put("value", value);
+        }
+        return auth;
+    }
+
+    private JsonNode mapBasicAuthenticator(JsonNode authenticator) {
+        ObjectNode auth = JSON.objectNode();
+        auth.put("type", "basic");
+        String username = textValue(authenticator.path("username"));
+        if (username != null) {
+            auth.put("username", username);
+        }
+        String password = textValue(authenticator.path("password"));
+        if (password != null) {
+            auth.put("password", password);
+        }
+        return auth;
+    }
+
+    private JsonNode mapBearerAuthenticator(JsonNode authenticator) {
+        ObjectNode auth = JSON.objectNode();
+        auth.put("type", "bearerToken");
+        String value = textValue(authenticator.path("api_token"));
+        if (value == null) {
+            value = textValue(authenticator.path("token"));
+        }
+        if (value == null) {
+            value = textValue(authenticator.path("value"));
+        }
+        if (value != null) {
+            auth.put("value", value);
+        }
+        return auth;
+    }
+
+    private JsonNode mapExtensionAuthenticator(JsonNode authenticator, String type) {
+        ObjectNode auth = JSON.objectNode();
+        auth.put("type", "extension");
+
+        ObjectNode extension = auth.putObject("extension");
+        extension.put("type", "java");
+        extension.put("source", "airbyte");
+        extension.put("originalType", type);
+
+        String className = textValue(authenticator.path("class_name"));
+        if (className == null) {
+            className = textValue(authenticator.path("className"));
+        }
+        if (className != null) {
+            extension.put("className", className);
+        }
+
+        extension.set("original", authenticator.deepCopy());
+        return auth;
+    }
+
+    private JsonNode emptyInputSchema() {
+        ObjectNode schema = JSON.objectNode();
+        schema.put("type", "object");
+        schema.put("additionalProperties", false);
+        return schema;
+    }
+
+    private JsonNode annotationsForMethod(String method) {
+        ObjectNode annotations = JSON.objectNode();
+        if ("GET".equalsIgnoreCase(method)) {
+            annotations.put("readOnlyHint", true);
+        }
+        return annotations;
     }
 
     private JsonNode normalizeRequester(JsonNode requester) {
@@ -379,6 +557,33 @@ public final class AirbyteManifestConverter {
         renameField(normalized, "url_base", "urlBase");
         renameField(normalized, "http_method", "method");
         return normalized;
+    }
+
+    private JsonNode normalizeConnectionSpec(JsonNode schema) {
+        JsonNode normalized = schema.deepCopy();
+        normalizeConnectionSpecNode(normalized);
+        return normalized;
+    }
+
+    private void normalizeConnectionSpecNode(JsonNode node) {
+        if (node == null || node.isNull() || node.isMissingNode()) {
+            return;
+        }
+        if (node.isObject()) {
+            ObjectNode object = (ObjectNode) node;
+            renameField(object, "airbyte_secret", "secret");
+            Iterator<JsonNode> children = object.elements();
+            while (children.hasNext()) {
+                normalizeConnectionSpecNode(children.next());
+            }
+            return;
+        }
+        if (node.isArray()) {
+            Iterator<JsonNode> children = node.elements();
+            while (children.hasNext()) {
+                normalizeConnectionSpecNode(children.next());
+            }
+        }
     }
 
     private void renameField(ObjectNode object, String from, String to) {
@@ -419,12 +624,31 @@ public final class AirbyteManifestConverter {
         return slash >= 0 ? ref.substring(slash + 1) : ref;
     }
 
-    private String schemaPathFor(String streamName, int index) {
+    private String endpointPathFor(String streamName, int index) {
         String slug = slugify(streamName);
         if (slug.isBlank()) {
             slug = "stream-" + (index + 1);
         }
-        return "schemas/" + slug + ".json";
+        return "endpoints/" + slug + ".json";
+    }
+
+    private String titleize(String value) {
+        String slug = slugify(value).replace('-', ' ');
+        if (slug.isBlank()) {
+            return value;
+        }
+        String[] parts = slug.split("\\s+");
+        StringBuilder title = new StringBuilder();
+        for (String part : parts) {
+            if (part.isBlank()) {
+                continue;
+            }
+            if (!title.isEmpty()) {
+                title.append(' ');
+            }
+            title.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+        }
+        return title.toString();
     }
 
     private String uniqueRequesterKey(String streamName, Map<String, JsonNode> requesters) {
@@ -488,9 +712,9 @@ public final class AirbyteManifestConverter {
             Map<String, JsonNode> requesters,
             Map<String, JsonNode> authenticators) {}
 
-    private record MappedStream(
-            StreamDefinition stream,
-            JsonNode schemaJson) {}
+    private record MappedEndpoint(
+            String path,
+            EndpointDefinition endpoint) {}
 
     private static final class MissingNodeHolder {
         private static final JsonNode INSTANCE = NullNode.getInstance();

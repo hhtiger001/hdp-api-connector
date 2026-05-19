@@ -1,0 +1,50 @@
+{
+  "apiVersion": "hdp.connector/v1alpha1",
+  "metadata": {
+    "name": "signed-demo",
+    "displayName": "Signed Demo"
+  },
+  "connectionSpec": {
+    "type": "object",
+    "required": [ "base_url", "api_key", "api_secret" ],
+    "properties": {
+      "base_url": {
+        "type": "string",
+        "title": "Base URL"
+      },
+      "api_key": {
+        "type": "string",
+        "title": "API Key"
+      },
+      "api_secret": {
+        "type": "string",
+        "title": "API Secret",
+        "secret": true
+      }
+    }
+  },
+  "request": {
+    "baseUrl": "{{ config['base_url'] }}",
+    "auth": {
+      "type": "extension",
+      "extension": {
+        "type": "java",
+        "className": "com.hdp.connectorregistry.signer.HmacSha256Signer",
+        "config": {
+          "signatureHeader": "X-HDP-Signature",
+          "timestampHeader": "X-HDP-Timestamp",
+          "keyField": "api_key",
+          "keyHeader": "X-HDP-Key",
+          "secretField": "api_secret",
+          "encoding": "hex"
+        }
+      }
+    }
+  },
+  "tools": [ {
+    "name": "signed-records",
+    "title": "Signed Records",
+    "description": "Preview a request signed by the demo Java HMAC signer.",
+    "endpointRef": "endpoints/signed-records.json"
+  } ]
+}

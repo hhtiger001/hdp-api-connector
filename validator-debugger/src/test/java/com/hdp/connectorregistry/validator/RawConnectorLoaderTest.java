@@ -30,9 +30,6 @@ class RawConnectorLoaderTest {
                 metadata:
                   name: missing-streams
                   displayName: Missing Streams
-                  source:
-                    type: airbyte-manifest
-                    originVersion: "0.1.0"
                 spec:
                   connectionSpec:
                     type: object

@@ -2,6 +2,7 @@ package com.hdp.connectorregistry.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.hdp.connectorregistry.io.ConnectorLoader.LoadedConnector;
+import com.hdp.connectorregistry.model.EndpointDefinition;
 import com.hdp.connectorregistry.model.SignerDefinition;
 import com.hdp.connectorregistry.model.StreamDefinition;
 import com.hdp.connectorregistry.signer.SignerRegistry;
@@ -24,6 +25,7 @@ public final class ConnectorValidator {
 
         validateConnectionSpec(loadedConnector.connector().spec().connectionSpec(), config, diagnostics);
         validateSchemaReferences(loadedConnector, diagnostics);
+        validateTools(loadedConnector, diagnostics);
         validateSigners(loadedConnector.connector().spec().signers(), diagnostics);
         return diagnostics;
     }
@@ -48,6 +50,9 @@ public final class ConnectorValidator {
     }
 
     private void validateSchemaReferences(LoadedConnector loadedConnector, List<Diagnostic> diagnostics) {
+        if (loadedConnector.connector().spec().streams() == null) {
+            return;
+        }
         for (StreamDefinition stream : loadedConnector.connector().spec().streams()) {
             if (stream.schema() == null || stream.schema().ref() == null || stream.schema().ref().isBlank()) {
                 continue;
@@ -57,6 +62,37 @@ public final class ConnectorValidator {
                         DiagnosticSeverity.ERROR,
                         "SCHEMA_MISSING",
                         "Missing schema ref: " + stream.schema().ref()));
+            }
+        }
+    }
+
+    private void validateTools(LoadedConnector loadedConnector, List<Diagnostic> diagnostics) {
+        if (loadedConnector.tools() == null || loadedConnector.tools().isEmpty()) {
+            return;
+        }
+        var names = new java.util.HashSet<String>();
+        for (EndpointDefinition tool : loadedConnector.tools()) {
+            if (!names.add(tool.name())) {
+                diagnostics.add(new Diagnostic(
+                        DiagnosticSeverity.ERROR,
+                        "TOOL_DUPLICATE",
+                        "Duplicate tool name: " + tool.name()));
+            }
+            if (tool.outputSchema() == null || tool.outputSchema().isNull()) {
+                diagnostics.add(new Diagnostic(
+                        DiagnosticSeverity.ERROR,
+                        "OUTPUT_SCHEMA_MISSING",
+                        "Missing outputSchema for tool: " + tool.name()));
+            }
+            if (tool.request() == null
+                    || tool.request().method() == null
+                    || tool.request().method().isBlank()
+                    || tool.request().path() == null
+                    || tool.request().path().isBlank()) {
+                diagnostics.add(new Diagnostic(
+                        DiagnosticSeverity.ERROR,
+                        "REQUEST_MISSING",
+                        "Tool request must include method and path: " + tool.name()));
             }
         }
     }

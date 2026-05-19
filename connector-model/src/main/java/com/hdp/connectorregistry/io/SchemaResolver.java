@@ -21,6 +21,10 @@ public final class SchemaResolver {
             connectorDirectory = Path.of(".").toAbsolutePath().normalize();
         }
 
+        if (connector.spec().streams() == null) {
+            return schemasByRef;
+        }
+
         for (StreamDefinition stream : connector.spec().streams()) {
             SchemaDefinition schema = stream.schema();
             if (schema == null || schema.ref() == null || schema.ref().isBlank()) {

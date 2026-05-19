@@ -152,9 +152,6 @@ kind: ApiConnector
 metadata:
   name: metabase
   displayName: Metabase
-  source:
-    type: airbyte-manifest
-    originVersion: "0.78.5"
 
 spec:
   connectionSpec:
@@ -200,9 +197,6 @@ Recommended fields:
 - `name`
 - `displayName`
 - `labels`
-- `source.type`
-- `source.originVersion`
-- `source.originRef`
 
 #### `spec.connectionSpec`
 
@@ -350,7 +344,6 @@ The converter should automatically map the following:
 - Airbyte `definitions` to HDP `spec.definitions`
 - Airbyte `streams` to HDP `spec.streams`
 - Airbyte inline schemas to referenced schema files when practical
-- Airbyte `version` to `metadata.source.originVersion`
 
 ### 9.3 Auth mapping
 

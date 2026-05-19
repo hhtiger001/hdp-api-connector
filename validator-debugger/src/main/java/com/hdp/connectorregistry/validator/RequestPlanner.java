@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hdp.connectorregistry.io.ConnectorLoader.LoadedConnector;
+import com.hdp.connectorregistry.model.EndpointDefinition;
+import com.hdp.connectorregistry.model.RequestDefinition;
 import com.hdp.connectorregistry.model.SignerDefinition;
 import com.hdp.connectorregistry.model.StreamDefinition;
 import com.hdp.connectorregistry.signer.RequestSigner;
@@ -27,6 +29,10 @@ public final class RequestPlanner {
     private final SignerRegistry signerRegistry = new SignerRegistry();
 
     public RequestPreview preview(LoadedConnector loadedConnector, String streamName, JsonNode config) {
+        if (loadedConnector.tools() != null && !loadedConnector.tools().isEmpty()) {
+            return previewTool(loadedConnector, streamName, config);
+        }
+
         StreamDefinition stream = findStream(loadedConnector, streamName);
         String method = defaultString(stream.request().method(), "GET");
         String baseUrl = resolveBaseUrl(loadedConnector, stream, config);
@@ -71,6 +77,14 @@ public final class RequestPlanner {
     }
 
     public String listComponents(LoadedConnector loadedConnector) {
+        if (loadedConnector.tools() != null && !loadedConnector.tools().isEmpty()) {
+            var sections = new ArrayList<String>();
+            sections.add(formatSection("tools", loadedConnector.tools().stream()
+                    .map(EndpointDefinition::name)
+                    .toList()));
+            return String.join(System.lineSeparator(), sections) + System.lineSeparator();
+        }
+
         var sections = new ArrayList<String>();
         sections.add(formatSection("streams", loadedConnector.connector().spec().streams().stream()
                 .map(StreamDefinition::name)
@@ -93,6 +107,156 @@ public final class RequestPlanner {
         }
 
         return String.join(System.lineSeparator(), sections) + System.lineSeparator();
+    }
+
+    private RequestPreview previewTool(LoadedConnector loadedConnector, String toolName, JsonNode config) {
+        EndpointDefinition tool = findTool(loadedConnector, toolName);
+        RequestDefinition request = tool.request();
+        String method = requireText(request == null ? null : request.method(), "Missing request.method for tool: " + tool.name());
+        String baseUrl = resolveToolBaseUrl(loadedConnector, request, config);
+        String path = templateResolver.resolve(defaultString(request.path(), ""), config);
+        String url = resolveUrl(baseUrl, path);
+
+        Map<String, String> headers = stringMap(request.headers(), config);
+        Map<String, String> queryParameters = stringMap(request.query(), config);
+        String body = bodyString(request.body(), config);
+
+        JsonNode auth = request.auth();
+        if (auth == null || auth.isMissingNode()) {
+            auth = loadedConnector.connector().spec().request() == null
+                    ? null
+                    : loadedConnector.connector().spec().request().auth();
+        }
+        body = applyAuth(auth, config, method, url, headers, queryParameters, body);
+
+        return new RequestPreview(
+                tool.name(),
+                method,
+                url,
+                Map.copyOf(headers),
+                Map.copyOf(queryParameters),
+                body,
+                null,
+                null);
+    }
+
+    private EndpointDefinition findTool(LoadedConnector loadedConnector, String toolName) {
+        return loadedConnector.tools().stream()
+                .filter(tool -> Objects.equals(tool.name(), toolName))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown tool: " + toolName));
+    }
+
+    private String resolveToolBaseUrl(LoadedConnector loadedConnector, RequestDefinition request, JsonNode config) {
+        String baseUrl = request == null ? null : request.baseUrl();
+        if (baseUrl == null || baseUrl.isBlank()) {
+            baseUrl = loadedConnector.connector().spec().request() == null
+                    ? null
+                    : loadedConnector.connector().spec().request().baseUrl();
+        }
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalStateException("Missing baseUrl");
+        }
+        return templateResolver.resolve(baseUrl, config);
+    }
+
+    private Map<String, String> stringMap(JsonNode node, JsonNode config) {
+        Map<String, String> values = new LinkedHashMap<>();
+        if (node == null || !node.isObject()) {
+            return values;
+        }
+        node.fields().forEachRemaining(entry -> values.put(entry.getKey(), templateResolver.resolve(entry.getValue().asText(), config)));
+        return values;
+    }
+
+    private String bodyString(JsonNode body, JsonNode config) {
+        if (body == null || body.isNull() || body.isMissingNode()) {
+            return null;
+        }
+        if (body.isTextual()) {
+            return templateResolver.resolve(body.asText(), config);
+        }
+        return body.toString();
+    }
+
+    private String applyAuth(
+            JsonNode auth,
+            JsonNode config,
+            String method,
+            String url,
+            Map<String, String> headers,
+            Map<String, String> queryParameters,
+            String body) {
+        if (auth == null || auth.isNull() || !auth.isObject()) {
+            return body;
+        }
+        String type = auth.path("type").asText("");
+        switch (type) {
+            case "apiKey" -> {
+                String name = auth.path("name").asText(null);
+                String value = templateResolver.resolve(auth.path("value").asText(""), config);
+                if (name == null || name.isBlank()) {
+                    return body;
+                }
+                String in = auth.path("in").asText("header");
+                if ("query".equalsIgnoreCase(in)) {
+                    queryParameters.put(name, value);
+                } else {
+                    headers.put(name, value);
+                }
+            }
+            case "bearerToken" -> headers.put("Authorization",
+                    "Bearer " + templateResolver.resolve(auth.path("value").asText(""), config));
+            case "basic" -> headers.put("Authorization", "Basic <redacted>");
+            case "extension" -> {
+                SignerResult signerResult = signExtension(auth.path("extension"), config, method, url, headers, queryParameters, body);
+                merge(headers, signerResult.headers());
+                merge(queryParameters, signerResult.queryParameters());
+                if (signerResult.body() != null) {
+                    body = signerResult.body();
+                }
+            }
+            default -> {
+            }
+        }
+        return body;
+    }
+
+    private SignerResult signExtension(
+            JsonNode extension,
+            JsonNode config,
+            String method,
+            String url,
+            Map<String, String> headers,
+            Map<String, String> queryParameters,
+            String body) {
+        if (extension == null || !extension.isObject() || !"java".equalsIgnoreCase(extension.path("type").asText(""))) {
+            throw new IllegalStateException("Extension auth requires java runtime implementation");
+        }
+        String className = extension.path("className").asText("");
+        if (className.isBlank()) {
+            throw new IllegalStateException("Extension auth is missing className");
+        }
+        RequestSigner signer = signerRegistry.instantiate(className);
+        return signer.sign(new SignerContext(
+                method,
+                URI.create(url),
+                Map.copyOf(headers),
+                Map.copyOf(queryParameters),
+                body,
+                connectorConfigAsMap(config),
+                extension.path("config").isMissingNode()
+                        ? Map.of()
+                        : OBJECT_MAPPER.convertValue(extension.path("config"), new TypeReference<>() {}),
+                Instant.now(),
+                "preview"));
+    }
+
+    private String requireText(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException(message);
+        }
+        return value;
     }
 
     private StreamDefinition findStream(LoadedConnector loadedConnector, String streamName) {

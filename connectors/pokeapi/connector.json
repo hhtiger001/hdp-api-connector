@@ -1,0 +1,28 @@
+{
+  "apiVersion" : "hdp.connector/v1alpha1",
+  "metadata" : {
+    "name" : "pokeapi-manifest",
+    "displayName" : "pokeapi-manifest"
+  },
+  "connectionSpec" : {
+    "type" : "object",
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "required" : [ "pokemon_name" ],
+    "properties" : {
+      "pokemon_name" : {
+        "type" : "string",
+        "description" : "Pokemon requested from the API.",
+        "title" : "Pokemon Name",
+        "pattern" : "^[a-z0-9_\\-]+$"
+      }
+    }
+  },
+  "request" : {
+    "baseUrl" : "https://pokeapi.co/api/v2/pokemon"
+  },
+  "tools" : [ {
+    "name" : "pokemon",
+    "title" : "Pokemon",
+    "endpointRef" : "endpoints/pokemon.json"
+  } ]
+}

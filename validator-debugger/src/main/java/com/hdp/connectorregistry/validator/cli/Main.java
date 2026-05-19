@@ -9,7 +9,10 @@ import picocli.CommandLine.Command;
         subcommands = {
             ValidateCommand.class,
             ListComponentsCommand.class,
-            PreviewRequestCommand.class
+            PreviewRequestCommand.class,
+            BuildConnectorCommand.class,
+            GenerateTestsCommand.class,
+            VerifyConnectorCommand.class
         })
 public final class Main implements Runnable {
     public static void main(String[] args) {

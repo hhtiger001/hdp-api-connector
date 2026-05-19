@@ -1,0 +1,15 @@
+{
+  "name": "projects",
+  "tool": "projects",
+  "input": {},
+  "records": {
+    "path": [],
+    "min": 1
+  },
+  "expect": {
+    "method": "GET",
+    "urlContains": "/workspaces/",
+    "statusCode": 200,
+    "responseJson": true
+  }
+}

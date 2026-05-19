@@ -3,6 +3,3 @@ kind: ApiConnector
 metadata:
   name: missing-spec
   displayName: Missing Spec
-  source:
-    type: airbyte-manifest
-    originVersion: "0.1.0"

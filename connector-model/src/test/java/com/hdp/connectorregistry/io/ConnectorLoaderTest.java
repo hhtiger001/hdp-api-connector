@@ -57,7 +57,7 @@ class ConnectorLoaderTest {
 
         assertThatThrownBy(() -> new ConnectorLoader().load(connectorPath))
                 .isInstanceOf(ConnectorLoadException.class)
-                .hasMessageContaining("Malformed connector YAML")
+                .hasMessageContaining("Malformed legacy connector YAML")
                 .hasMessageContaining("streams-not-list.yaml");
     }
 
@@ -72,9 +72,6 @@ class ConnectorLoaderTest {
                 metadata:
                   name: absolute-schema
                   displayName: Absolute Schema
-                  source:
-                    type: airbyte-manifest
-                    originVersion: "0.1.0"
                 spec:
                   connectionSpec:
                     type: object
@@ -112,9 +109,6 @@ class ConnectorLoaderTest {
                 metadata:
                   name: traversing-schema
                   displayName: Traversing Schema
-                  source:
-                    type: airbyte-manifest
-                    originVersion: "0.1.0"
                 spec:
                   connectionSpec:
                     type: object
@@ -151,5 +145,63 @@ class ConnectorLoaderTest {
         assertThat(loaded.schemasByRef()).isEmpty();
         assertThat(loaded.connector().spec().streams()).hasSize(1);
         assertThat(loaded.connector().spec().streams().get(0).schema().inline()).isNotNull();
+    }
+
+    @Test
+    void loadsConnectorJsonAndEndpointRefs() throws IOException {
+        Path connectorDirectory = Files.createTempDirectory("connector-model-json");
+        Files.createDirectories(connectorDirectory.resolve("endpoints"));
+        Files.writeString(connectorDirectory.resolve("connector.json"), """
+                {
+                  "apiVersion": "hdp.connector/v1alpha1",
+                  "metadata": {
+                    "name": "connector-demo",
+                    "displayName": "Connector Demo"
+                  },
+                  "connectionSpec": {
+                    "type": "object"
+                  },
+                  "request": {
+                    "baseUrl": "https://api.example.com"
+                  },
+                  "tools": [
+                    {
+                      "name": "users",
+                      "title": "Users",
+                      "endpointRef": "endpoints/users.json"
+                    }
+                  ]
+                }
+                """);
+        Files.writeString(connectorDirectory.resolve("endpoints/users.json"), """
+                {
+                  "name": "users",
+                  "title": "Users",
+                  "inputSchema": {
+                    "type": "object"
+                  },
+                  "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "request": {
+                    "method": "GET",
+                    "path": "/users"
+                  }
+                }
+                """);
+
+        var loaded = new ConnectorLoader().load(connectorDirectory.resolve("connector.json"));
+
+        assertThat(loaded.connector().metadata().name()).isEqualTo("connector-demo");
+        assertThat(loaded.connector().spec().request().baseUrl()).isEqualTo("https://api.example.com");
+        assertThat(loaded.tools()).hasSize(1);
+        assertThat(loaded.tools().get(0).outputSchema().path("properties").path("id").path("type").asText())
+                .isEqualTo("string");
+        assertThat(loaded.endpointRefsByName()).containsEntry("users", "endpoints/users.json");
     }
 }

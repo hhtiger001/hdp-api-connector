@@ -20,8 +20,8 @@ public final class PreviewRequestCommand implements Callable<Integer> {
     @Option(names = "--connector", required = true)
     Path connectorPath;
 
-    @Option(names = "--stream", required = true)
-    String streamName;
+    @Option(names = {"--tool", "--stream"}, required = true)
+    String toolName;
 
     @Option(names = "--config", required = true)
     Path configPath;
@@ -34,7 +34,7 @@ public final class PreviewRequestCommand implements Callable<Integer> {
         try {
             var loadedConnector = new RawConnectorLoader().load(connectorPath);
             var config = OBJECT_MAPPER.readTree(configPath.toFile());
-            RequestPreview preview = new RequestPlanner().preview(loadedConnector, streamName, config);
+            RequestPreview preview = new RequestPlanner().preview(loadedConnector, toolName, config);
             printPreview(preview);
             return 0;
         } catch (ConnectorLoadException exception) {
@@ -46,7 +46,11 @@ public final class PreviewRequestCommand implements Callable<Integer> {
 
     private void printPreview(RequestPreview preview) {
         var out = spec.commandLine().getOut();
-        out.printf("%s %s qps=%s%n", preview.method(), preview.url(), preview.effectiveQps());
+        if (preview.effectiveQps() == null) {
+            out.printf("%s %s%n", preview.method(), preview.url());
+        } else {
+            out.printf("%s %s qps=%s%n", preview.method(), preview.url(), preview.effectiveQps());
+        }
         printMap(out, "headers", preview.headers());
         printMap(out, "queryParameters", preview.queryParameters());
         if (preview.body() != null) {

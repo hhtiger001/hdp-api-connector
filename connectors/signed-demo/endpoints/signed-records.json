@@ -1,0 +1,28 @@
+{
+  "name": "signed-records",
+  "title": "Signed Records",
+  "description": "Preview a request signed by the demo Java HMAC signer.",
+  "inputSchema": {
+    "type": "object",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      }
+    }
+  },
+  "request": {
+    "method": "GET",
+    "path": "/signed-records"
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}

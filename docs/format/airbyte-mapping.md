@@ -1,24 +1,16 @@
-# Airbyte Mapping
+# Airbyte 字段映射
 
-This document explains how the registry MVP maps an Airbyte declarative manifest into HDP connector YAML.
+当前 Airbyte 转换规则的事实源是 [../airbyte-conversion.md](../airbyte-conversion.md)。
 
-## Direct mappings
+这份文件只保留跳转入口，避免同一套映射规则在两处维护后出现不一致。
 
-- `spec.connection_specification` -> `spec.connectionSpec`
-- `definitions` -> `spec.definitions`
-- `streams` -> `spec.streams`
+核心方向：
 
-These mappings are structural. The converter should preserve the manifest content as closely as possible while adapting it to the HDP wrapper.
+- Airbyte `streams[*]` 转成 `endpoints/*.json`。
+- Airbyte requester 的 base URL 转成 `connector.json.request.baseUrl`。
+- Airbyte requester 的 path/method 转成 endpoint `request.path/request.method`。
+- Airbyte schema 转成 endpoint `outputSchema`。
+- 常见标准鉴权转成 `connector.json.request.auth`。
+- 复杂自定义鉴权转成 Java extension 占位，由开发者补 Java signer。
 
-## Downgrade rules
-
-- When a simple fixed-window `api_budget` can be reduced safely, map it to the narrowest stable HDP qps field; a common outcome is connector default qps
-- Custom component -> `draft` or `blocked`
-- Complex budget -> keep the original detail in `conversion-report.json`
-
-## Notes on downgrade handling
-
-- Use `draft` when the converter can keep the connector shape but not fully normalize the Airbyte feature.
-- Use `blocked` when the feature cannot be represented safely in the MVP connector format.
-- QPS downgrades should prefer the narrowest stable HDP scope that can be derived without ambiguity instead of always forcing connector defaults.
-- Preserve complex or non-stable budget details in `conversion-report.json` so the conversion remains auditable without inventing a lossy QPS value.
+分页、响应取数、落库模式、主键、字段拍平和数组拆表策略不进入 connector 定义，由同步任务服务配置和执行。

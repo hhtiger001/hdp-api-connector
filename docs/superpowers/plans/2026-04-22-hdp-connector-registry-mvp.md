@@ -254,9 +254,6 @@ kind: ApiConnector
 metadata:
   name: demo-users
   displayName: Demo Users
-  source:
-    type: airbyte-manifest
-    originVersion: "0.1.0"
 spec:
   connectionSpec:
     type: object
@@ -357,11 +354,7 @@ package com.hdp.connectorregistry.model;
 
 public record Metadata(
         String name,
-        String displayName,
-        SourceMetadata source) {
-
-    public record SourceMetadata(String type, String originVersion, String originRef) {}
-}
+        String displayName) {}
 ```
 
 ```java
@@ -974,8 +967,7 @@ import java.util.List;
 
 public record ConversionReport(
         ConversionStatus status,
-        List<ConversionIssue> issues,
-        String originVersion) {}
+        List<ConversionIssue> issues) {}
 ```
 
 ```java
@@ -1049,10 +1041,7 @@ public final class AirbyteManifestConverter {
         var connector = new ApiConnector(
                 "hdp.connector/v1alpha1",
                 "ApiConnector",
-                new Metadata(name, name, new Metadata.SourceMetadata(
-                        "airbyte-manifest",
-                        manifest.path("version").asText(),
-                        manifestPath.toString())),
+                new Metadata(name, name),
                 new ConnectorSpec(
                         manifest.path("spec").path("connection_specification"),
                         new Defaults(null, manifest.path("definitions").path("base_requester").path("urlBase").asText(null)),
@@ -1283,7 +1272,6 @@ import java.util.List;
 public record ConversionReport(
         ConversionStatus status,
         List<ConversionIssue> issues,
-        String originVersion,
         JsonNode originalApiBudget) {}
 ```
 

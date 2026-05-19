@@ -1,0 +1,41 @@
+{
+  "apiVersion" : "hdp.connector/v1alpha1",
+  "metadata" : {
+    "name" : "clockify-manifest",
+    "displayName" : "clockify-manifest"
+  },
+  "connectionSpec" : {
+    "type" : "object",
+    "$schema" : "http://json-schema.org/draft-07/schema#",
+    "required" : [ "api_key", "workspace_id" ],
+    "properties" : {
+      "api_key" : {
+        "type" : "string",
+        "title" : "API Key",
+        "secret" : true
+      },
+      "workspace_id" : {
+        "type" : "string",
+        "title" : "Workspace Id"
+      }
+    }
+  },
+  "request" : {
+    "baseUrl" : "https://api.clockify.me/api/v1/",
+    "auth" : {
+      "type" : "apiKey",
+      "in" : "header",
+      "name" : "X-Api-Key",
+      "value" : "{{ config['api_key'] }}"
+    }
+  },
+  "tools" : [ {
+    "name" : "users",
+    "title" : "Users",
+    "endpointRef" : "endpoints/users.json"
+  }, {
+    "name" : "projects",
+    "title" : "Projects",
+    "endpointRef" : "endpoints/projects.json"
+  } ]
+}

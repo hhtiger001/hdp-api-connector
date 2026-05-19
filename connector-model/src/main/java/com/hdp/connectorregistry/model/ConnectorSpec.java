@@ -9,4 +9,16 @@ public record ConnectorSpec(
         Defaults defaults,
         Definitions definitions,
         Map<String, SignerDefinition> signers,
-        List<StreamDefinition> streams) {}
+        List<StreamDefinition> streams,
+        RequestDefinition request,
+        EndpointDiscovery endpoints) {
+
+    public ConnectorSpec(
+            JsonNode connectionSpec,
+            Defaults defaults,
+            Definitions definitions,
+            Map<String, SignerDefinition> signers,
+            List<StreamDefinition> streams) {
+        this(connectionSpec, defaults, definitions, signers, streams, null, null);
+    }
+}

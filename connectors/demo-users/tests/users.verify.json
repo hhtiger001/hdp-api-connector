@@ -1,0 +1,15 @@
+{
+  "name": "users",
+  "tool": "users",
+  "input": {},
+  "records": {
+    "path": [],
+    "min": 1
+  },
+  "expect": {
+    "method": "GET",
+    "urlContains": "/users",
+    "statusCode": 200,
+    "responseJson": true
+  }
+}
